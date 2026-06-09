@@ -1,0 +1,38 @@
+{
+  "name": "open-doctor",
+  "version": "0.0.1",
+  "description": "Support toolkit for repairing and inspecting local OpenCode data",
+  "type": "module",
+  "bin": {
+    "open-doctor": "./bin/open-doctor"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun ./script/build.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@opentui/core": "catalog:",
+    "better-sqlite3": "^12.10.0"
+  },
+  "devDependencies": {
+    "@open-doctor/core": "workspace:*",
+    "@open-doctor/tui": "workspace:*",
+    "@opentui/react": "catalog:",
+    "@types/yargs": "catalog:",
+    "effect": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "yargs": "catalog:"
+  },
+  "engines": {
+    "node": ">=20.17.0"
+  },
+  "license": "MIT"
+}
