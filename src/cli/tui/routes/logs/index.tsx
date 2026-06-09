@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { LogsView } from "./view.js"
 import { useLogs } from "../../context/logs.js"
 import { useRoute } from "../../context/route.js"
@@ -15,6 +16,11 @@ export function useLogsRoute(): ScreenRoute {
 }
 
 function LogsScreen() {
+  const logs = useLogs()
+  useEffect(() => {
+    logs.actions.refresh()
+  }, [])
+
   return <LogsView />
 }
 

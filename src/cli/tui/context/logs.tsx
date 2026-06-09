@@ -1,6 +1,10 @@
 import type { LogEntry, LogSource } from "../../../utils/logs.js"
 import type { LogFilter, LogsPane } from "../types.js"
-import { createRequiredContext } from "./helper.js"
+import { useToastContext } from "../ui/toast.js"
+import { useHealth } from "./health.js"
+import { createStateContext } from "./helper.js"
+import { useLogsState } from "./logs-state.js"
+import { useRoute } from "./route.js"
 
 export type LogsContext = {
   source: {
@@ -36,7 +40,21 @@ export type LogsContext = {
   }
 }
 
-const context = createRequiredContext<LogsContext>("Logs")
+const context = createStateContext<LogsContext>({
+  name: "Logs",
+  init: () => {
+    const route = useRoute()
+    const health = useHealth()
+    const toast = useToastContext()
+
+    return useLogsState({
+      quit: route.actions.quit,
+      openRepairDetail: route.actions.openRepairDetail,
+      setStatus: health.status.set,
+      showToast: toast.actions.show,
+    })
+  },
+})
 
 export const LogsProvider = context.Provider
 export const useLogs = context.useValue

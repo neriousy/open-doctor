@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { BackupsView } from "./view.js"
 import { useBackups } from "../../context/backups.js"
 import { useRoute } from "../../context/route.js"
@@ -15,6 +16,11 @@ export function useBackupsRoute(): ScreenRoute {
 }
 
 function BackupsScreen() {
+  const backups = useBackups()
+  useEffect(() => {
+    backups.actions.refresh()
+  }, [])
+
   return <BackupsView />
 }
 

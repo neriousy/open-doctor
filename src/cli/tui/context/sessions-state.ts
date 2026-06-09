@@ -14,7 +14,6 @@ import { boundedIndex } from "../util/indexing.js"
 export function useSessionsState(options: {
   health: ToolkitHealth
   quit: () => void
-  openLogs: () => void
   setStatus: (status: string) => void
   showToast: (input: ToastInput) => void
   setConfirmation: (confirmation: ConfirmationRequest | null) => void

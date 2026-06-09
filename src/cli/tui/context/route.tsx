@@ -1,5 +1,6 @@
-import type { SidebarSection, View } from "../types.js"
-import { createRequiredContext } from "./helper.js"
+import { useState } from "react"
+import type { View } from "../types.js"
+import { createStateContext } from "./helper.js"
 
 export type RouteContext = {
   location: {
@@ -16,11 +17,62 @@ export type RouteContext = {
     openLogs: () => void
     openBackups: () => void
     openSettings: () => void
-    refreshSectionPreview: (section: SidebarSection) => void
   }
 }
 
-const context = createRequiredContext<RouteContext>("Route")
+const context = createStateContext<RouteContext, { onExit: () => void }>({
+  name: "Route",
+  init: (props) => {
+    const [view, setView] = useState<View>("overview")
+    const restoreImplemented = false
+
+    function quit() {
+      props.onExit()
+    }
+
+    function goOverview() {
+      setView("overview")
+    }
+
+    function openRepairDetail() {
+      setView("repair-detail")
+    }
+
+    function openLogs() {
+      setView("logs")
+    }
+
+    function openBackups() {
+      setView("backups")
+    }
+
+    function openArchivedSessions() {
+      setView("archived")
+    }
+
+    function openSettings() {
+      setView("overview")
+    }
+
+    return {
+      location: {
+        view,
+      },
+      flags: {
+        restoreImplemented,
+      },
+      actions: {
+        quit,
+        goOverview,
+        openRepairDetail,
+        openArchivedSessions,
+        openLogs,
+        openBackups,
+        openSettings,
+      },
+    }
+  },
+})
 
 export const RouteProvider = context.Provider
 export const useRoute = context.useValue

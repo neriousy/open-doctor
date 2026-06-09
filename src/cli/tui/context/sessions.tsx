@@ -1,5 +1,10 @@
 import type { ArchivedSession } from "../../../utils/sessions.js"
-import { createRequiredContext } from "./helper.js"
+import { useConfirmDialog } from "../ui/dialog-confirm.js"
+import { useToastContext } from "../ui/toast.js"
+import { useHealth } from "./health.js"
+import { createStateContext } from "./helper.js"
+import { useRoute } from "./route.js"
+import { useSessionsState } from "./sessions-state.js"
 
 export type SessionsContext = {
   list: {
@@ -29,7 +34,23 @@ export type SessionsContext = {
   }
 }
 
-const context = createRequiredContext<SessionsContext>("Sessions")
+const context = createStateContext<SessionsContext>({
+  name: "Sessions",
+  init: () => {
+    const health = useHealth()
+    const route = useRoute()
+    const toast = useToastContext()
+    const confirm = useConfirmDialog()
+
+    return useSessionsState({
+      health: health.snapshot,
+      quit: route.actions.quit,
+      setStatus: health.status.set,
+      showToast: toast.actions.show,
+      setConfirmation: confirm.actions.set,
+    })
+  },
+})
 
 export const SessionsProvider = context.Provider
 export const useSessions = context.useValue

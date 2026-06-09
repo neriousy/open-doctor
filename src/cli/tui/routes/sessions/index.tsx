@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { ArchivedSessionsView } from "./view.js"
 import { useRoute } from "../../context/route.js"
 import { useSessions } from "../../context/sessions.js"
@@ -15,6 +16,11 @@ export function useSessionsRoute(): ScreenRoute {
 }
 
 function ArchivedScreen() {
+  const sessions = useSessions()
+  useEffect(() => {
+    sessions.actions.refresh()
+  }, [])
+
   return <ArchivedSessionsView />
 }
 
