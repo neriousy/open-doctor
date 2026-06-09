@@ -12,30 +12,33 @@ import { handleRouteKey } from "./runtime/keyboard.js"
 import { useScreenRoutes } from "./runtime/router.js"
 import { ConfirmDialogProvider, useConfirmDialog } from "./ui/dialog-confirm.js"
 import { ToastProvider } from "./ui/toast.js"
+import { ToolkitQueryProvider } from "./query/client.js"
 
 export function ToolkitApp(props: { onExit: () => void }) {
   return (
-    <ToastProvider>
-      <RouteProvider onExit={props.onExit}>
-        <HealthProvider>
-          <ConfirmDialogProvider>
-            <SessionsProvider>
-              <LogsProvider>
-                <BackupsProvider>
-                  <OverviewProvider>
-                    <RepairProvider>
-                      <OverlaysProvider>
-                        <ToolkitAppContent />
-                      </OverlaysProvider>
-                    </RepairProvider>
-                  </OverviewProvider>
-                </BackupsProvider>
-              </LogsProvider>
-            </SessionsProvider>
-          </ConfirmDialogProvider>
-        </HealthProvider>
-      </RouteProvider>
-    </ToastProvider>
+    <ToolkitQueryProvider>
+      <ToastProvider>
+        <RouteProvider onExit={props.onExit}>
+          <HealthProvider>
+            <ConfirmDialogProvider>
+              <SessionsProvider>
+                <LogsProvider>
+                  <BackupsProvider>
+                    <OverviewProvider>
+                      <RepairProvider>
+                        <OverlaysProvider>
+                          <ToolkitAppContent />
+                        </OverlaysProvider>
+                      </RepairProvider>
+                    </OverviewProvider>
+                  </BackupsProvider>
+                </LogsProvider>
+              </SessionsProvider>
+            </ConfirmDialogProvider>
+          </HealthProvider>
+        </RouteProvider>
+      </ToastProvider>
+    </ToolkitQueryProvider>
   )
 }
 

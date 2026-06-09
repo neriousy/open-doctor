@@ -1,15 +1,21 @@
-import { useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { formatError } from "@open-doctor/core/error"
 import { resolveDbArg } from "@open-doctor/core/input"
-import { listArchivedSessions } from "@open-doctor/core/utils/sessions"
 import type { ArchivedSession } from "@open-doctor/core/utils/sessions"
-import { runCorePromise } from "../core-runtime.js"
 import { runUnarchiveInChild } from "../actions.js"
-import { sessionTitle } from "../util/format.js"
 import type { ToolkitHealth } from "../health.js"
+import { archivedSessionsQueryOptions, mutationKeys, queryKeys } from "../query/toolkit.js"
+import { sessionTitle } from "../util/format.js"
 import type { ConfirmationRequest, ToastInput } from "../types.js"
 import { filteredArchivedSessions } from "../util/filters.js"
 import { boundedIndex } from "../util/indexing.js"
+
+type UnarchiveVariables = {
+  db: string
+  session: ArchivedSession
+  index: number
+}
 
 export function useSessionsState(options: {
   health: ToolkitHealth
@@ -18,9 +24,10 @@ export function useSessionsState(options: {
   showToast: (input: ToastInput) => void
   setConfirmation: (confirmation: ConfirmationRequest | null) => void
 }) {
-  const [sessions, setSessions] = useState<ArchivedSession[]>([])
-  const [loading, setLoading] = useState(false)
-  const [pendingUnarchive, setPendingUnarchive] = useState(0)
+  const db = resolveDbArg()
+  const queryClient = useQueryClient()
+  const query = useQuery(archivedSessionsQueryOptions(db))
+  const sessions = query.data ?? []
   const [archivedSearch, setArchivedSearch] = useState("")
   const archivedSearchRef = useRef("")
   const [archivedSearchActive, setArchivedSearchActive] = useState(false)
@@ -29,30 +36,81 @@ export function useSessionsState(options: {
   if (selectedSessionIdsRef.current === null) selectedSessionIdsRef.current = new Set()
   const [previewSessionId, setPreviewSessionId] = useState<string | null>(null)
   const [sessionSelectedIndex, setSessionSelectedIndex] = useState(0)
-  const visibleArchivedSessions = filteredArchivedSessions(sessions, archivedSearch)
+  const visibleArchivedSessions = useMemo(() => filteredArchivedSessions(sessions, archivedSearch), [sessions, archivedSearch])
   const sessionSelected = boundedIndex(sessionSelectedIndex, visibleArchivedSessions.length)
+  const pendingUnarchive = useIsMutating({ mutationKey: mutationKeys.sessions.unarchive() })
+
+  const unarchiveMutation = useMutation({
+    mutationKey: mutationKeys.sessions.unarchive(),
+    mutationFn: async (variables: UnarchiveVariables) => {
+      const result = await runUnarchiveInChild(variables.session.id, variables.db)
+      if (result.code !== 0) {
+        const message = result.stderr.trim() || result.stdout.trim() || `Failed to unarchive ${variables.session.id}`
+        throw new Error(message)
+      }
+      if (result.stdout.includes("No archived session found")) {
+        throw new Error(`No archived session found for ${variables.session.id}`)
+      }
+      return result
+    },
+    onMutate: async (variables) => {
+      const key = queryKeys.sessions.archived(variables.db)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<ArchivedSession[]>(key)
+      queryClient.setQueryData<ArchivedSession[]>(key, (current = []) => current.filter((item) => item.id !== variables.session.id))
+      return { previous }
+    },
+    onError: (error, variables, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.sessions.archived(variables.db), context.previous)
+      const message = formatError(error)
+      options.setStatus(message)
+      options.showToast({ variant: "error", title: "Unarchive failed", message })
+    },
+    onSuccess: (_result, variables) => {
+      options.setStatus(`Unarchived ${variables.session.id}`)
+      options.showToast({ variant: "success", title: "Session unarchived", message: sessionTitle(variables.session) })
+    },
+    onSettled: (_result, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.archived(variables.db) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.backups.list(variables.db) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.health(variables.db) })
+    },
+  })
+
+  useEffect(() => {
+    const selected = Math.max(0, Math.min(sessionSelectedIndex, sessions.length - 1))
+    if (selected !== sessionSelectedIndex) setSessionSelectedIndex(selected)
+    syncSelectedSessionIds(sessions)
+    setPreviewSessionId((current) => (current && !sessions.some((session) => session.id === current) ? null : current))
+  }, [query.dataUpdatedAt])
+
+  useEffect(() => {
+    if (!query.data) return
+    options.setStatus(query.data.length === 0 ? "No archived sessions found" : `${query.data.length} archived session(s), newest first`)
+  }, [query.dataUpdatedAt])
+
+  useEffect(() => {
+    if (!query.error) return
+    const message = formatError(query.error)
+    options.setStatus(message)
+    options.showToast({ variant: "error", title: "Archived-session refresh failed", message })
+  }, [query.errorUpdatedAt])
 
   function refreshArchivedSessions() {
-    setLoading(true)
-    options.setStatus("Refreshing archived sessions...")
-    runCorePromise(listArchivedSessions(resolveDbArg()))
-      .then((next) => {
-        setSessions(next)
-        setSessionSelectedIndex(0)
-        syncSelectedSessionIds(next)
-        if (previewSessionId && !next.some((session) => session.id === previewSessionId)) setPreviewSessionId(null)
-        options.setStatus(next.length === 0 ? "No archived sessions found" : `${next.length} archived session(s), newest first`)
-      })
-      .catch((error: unknown) => {
-        const message = formatError(error)
-        options.setStatus(message)
-        options.showToast({ variant: "error", message })
-      })
-      .finally(() => setLoading(false))
+    options.setStatus(query.data ? "Refreshing archived sessions..." : "Loading archived sessions...")
+    query.refetch().catch(() => undefined)
   }
 
   function moveArchivedSessions(direction: 1 | -1) {
-    setSessionSelectedIndex((current) => boundedIndex(current + direction, visibleArchivedSessions.length))
+    moveArchivedSessionsBy(direction)
+  }
+
+  function moveArchivedSessionsBy(amount: number) {
+    setSessionSelectedIndex((current) => boundedIndex(current + amount, visibleArchivedSessions.length))
+  }
+
+  function jumpArchivedSessions(position: "start" | "end") {
+    setSessionSelectedIndex(position === "start" ? 0 : Math.max(0, visibleArchivedSessions.length - 1))
   }
 
   function startArchivedSearch() {
@@ -156,51 +214,12 @@ export function useSessionsState(options: {
   }
 
   function applyUnarchiveSession(session: ArchivedSession, index: number) {
-    const db = resolveDbArg()
-    setSessions((current) => current.filter((item) => item.id !== session.id))
-    setSessionSelectedIndex((current) => boundedIndex(current, visibleArchivedSessions.length - 1))
     removeSelectedSessionId(session.id)
     if (previewSessionId === session.id) setPreviewSessionId(null)
-    setPendingUnarchive((current) => current + 1)
+    setSessionSelectedIndex((current) => boundedIndex(current, Math.max(0, visibleArchivedSessions.length - 1)))
     options.setStatus(`Unarchiving ${session.id} in the background...`)
     options.showToast({ variant: "info", title: "Unarchiving session", message: sessionTitle(session), duration: 2500 })
-
-    runUnarchiveInChild(session.id, db)
-      .then((result) => {
-        if (result.code !== 0) {
-          restoreSession(session, index)
-          const message = result.stderr.trim() || result.stdout.trim() || `Failed to unarchive ${session.id}`
-          options.setStatus(message)
-          options.showToast({ variant: "error", title: "Unarchive failed", message })
-          return
-        }
-
-        if (result.stdout.includes("No archived session found")) {
-          restoreSession(session, index)
-          options.setStatus(`No archived session found for ${session.id}`)
-          options.showToast({ variant: "warning", message: `No archived session found for ${sessionTitle(session)}` })
-          return
-        }
-
-        options.setStatus(`Unarchived ${session.id}`)
-        options.showToast({ variant: "success", title: "Session unarchived", message: sessionTitle(session) })
-      })
-      .catch((error: unknown) => {
-        restoreSession(session, index)
-        const message = formatError(error)
-        options.setStatus(message)
-        options.showToast({ variant: "error", title: "Unarchive failed", message })
-      })
-      .finally(() => setPendingUnarchive((current) => Math.max(0, current - 1)))
-  }
-
-  function restoreSession(session: ArchivedSession, index: number) {
-    setSessions((current) => {
-      if (current.some((item) => item.id === session.id)) return current
-      const next = current.slice()
-      next.splice(Math.min(index, next.length), 0, session)
-      return next
-    })
+    unarchiveMutation.mutate({ db, session, index })
   }
 
   function syncSelectedSessionIds(nextSessions: ArchivedSession[]) {
@@ -241,11 +260,16 @@ export function useSessionsState(options: {
       start: startArchivedSearch,
       handleKey: handleArchivedSearchKey,
     },
-    loading,
+    loading: query.isLoading,
+    refreshing: query.isFetching && !query.isLoading,
+    stale: query.isStale,
+    error: query.error ? formatError(query.error) : undefined,
     pendingUnarchive,
     actions: {
       refresh: refreshArchivedSessions,
       move: moveArchivedSessions,
+      moveBy: moveArchivedSessionsBy,
+      jump: jumpArchivedSessions,
       requestUnarchive: requestUnarchiveSelectedSessions,
     },
   }

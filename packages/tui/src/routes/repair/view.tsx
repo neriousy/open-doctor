@@ -1,13 +1,17 @@
 // Safe repair inspection screen: no mutation happens until the user explicitly runs repair.
 import { useHealth } from "../../context/health.js"
+import { useOverview } from "../../context/overview.js"
 import { useRepair } from "../../context/repair.js"
 import { Box, DetailsPanel, StatusBadge, Text } from "../../ui/primitives.js"
+import { useResponsiveLayout } from "../../ui/layout.js"
 import { repairStatusDisplay } from "../../util/repair-status.js"
 import { WorkspaceSidebar } from "../../ui/workspace-sidebar.js"
 import { TUI } from "../../ui/primitives-model.js"
 
 export function RepairDetailView() {
   const health = useHealth()
+  const overview = useOverview()
+  const layout = useResponsiveLayout()
   const repairState = useRepair()
   const repair = health.snapshot.workspaceRepair
   const display = repairStatusDisplay(repair)
@@ -15,7 +19,7 @@ export function RepairDetailView() {
 
   return (
     <Box id="repair-detail" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-      <WorkspaceSidebar selected="Data" />
+      <WorkspaceSidebar selected="Repairs" focused={overview.pane.focused === "sidebar"} />
       <Box flexGrow={1} flexDirection="column">
         <Box id="repair-summary" height={statusHeaderHeight(display.status)} border borderColor="#27272A" padding={1} backgroundColor="#111113">
           <Text fg="#EDEDED" height={1}>
@@ -34,30 +38,32 @@ export function RepairDetailView() {
         </Box>
 
         <Box id="repair-plan" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-          <Box id="planned-changes" width="58%" border borderColor="#27272A" padding={1} backgroundColor="#111113">
+          <Box id="planned-changes" width={layout.showDetailPanel ? "58%" : "100%"} border borderColor="#27272A" padding={1} backgroundColor="#111113">
             <Text fg="#EDEDED" height={1}>
             Planned changes
             </Text>
             <PlannedChanges status={display.status} changes={changes.map((change) => change.label)} />
           </Box>
 
-          <DetailsPanel
-            title="Data detail"
-            width={48}
-            sections={[
-              {
-                title: "Why it matters",
-                rows: [["Summary", reportText(display.status, health.status.message, repair.error)]],
-              },
-              {
-                title: "Safety",
-                rows: [
-                  ["Source", health.snapshot.dbPath],
-                  ["Next step", display.status === "DETECTED" || display.status === "EXPERIMENTAL" ? "Dry run, show SQL, then Apply repair..." : "Review details"],
-                ],
-              },
-            ]}
-          />
+          {layout.showDetailPanel ? (
+            <DetailsPanel
+              title="Data detail"
+              width={48}
+              sections={[
+                {
+                  title: "Why it matters",
+                  rows: [["Summary", reportText(display.status, health.status.message, repair.error)]],
+                },
+                {
+                  title: "Safety",
+                  rows: [
+                    ["Source", health.snapshot.dbPath],
+                    ["Next step", display.status === "DETECTED" || display.status === "EXPERIMENTAL" ? "Dry run, show SQL, then Apply repair..." : "Review details"],
+                  ],
+                },
+              ]}
+            />
+          ) : null}
         </Box>
 
         {repairState.sql.visible ? (

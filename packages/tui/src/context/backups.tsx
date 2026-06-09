@@ -12,9 +12,14 @@ export type BackupsContext = {
     select: (index: number) => void
   }
   loading: boolean
+  refreshing: boolean
+  stale: boolean
+  error: string | undefined
   actions: {
     refresh: () => void
     move: (direction: 1 | -1) => void
+    moveBy: (amount: number) => void
+    jump: (position: "start" | "end") => void
     create: () => void
     verifySelected: () => void
     copySelectedPath: () => void
@@ -33,7 +38,6 @@ const context = createStateContext<BackupsContext>({
       setStatus: health.status.set,
       showToast: toast.actions.show,
       setConfirmation: confirm.actions.set,
-      refreshHealth: health.actions.refresh,
     })
   },
 })

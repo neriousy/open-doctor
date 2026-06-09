@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { View } from "../types.js"
+import type { SidebarSection, View } from "../types.js"
 import { createStateContext } from "./helper.js"
 
 export type RouteContext = {
@@ -19,6 +19,7 @@ export type RouteContext = {
     openLogs: () => void
     openBackups: () => void
     openSettings: () => void
+    openSection: (section: SidebarSection) => void
   }
 }
 
@@ -64,6 +65,16 @@ const context = createStateContext<RouteContext, { onExit: () => void }>({
       setView("settings")
     }
 
+    function openSection(section: SidebarSection) {
+      if (section === "Overview") return goOverview()
+      if (section === "Logs") return openLogs()
+      if (section === "Sessions") return openArchivedSessions()
+      if (section === "Repairs") return openRepairDetail()
+      if (section === "Data") return openData()
+      if (section === "Config") return openConfig()
+      if (section === "Settings") return openSettings()
+    }
+
     return {
       location: {
         view,
@@ -81,6 +92,7 @@ const context = createStateContext<RouteContext, { onExit: () => void }>({
         openLogs,
         openBackups,
         openSettings,
+        openSection,
       },
     }
   },

@@ -2,76 +2,120 @@
 import { useState } from "react"
 import type { BackupFile } from "@open-doctor/core/utils/backups"
 import { useBackups } from "../../context/backups.js"
+import { useOverview } from "../../context/overview.js"
 import { useRoute } from "../../context/route.js"
-import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
+import { Box, DetailsPanel, EmptyState, MainPanel, Text } from "../../ui/primitives.js"
+import { useResponsiveLayout } from "../../ui/layout.js"
 import { TUI } from "../../ui/primitives-model.js"
 import { WorkspaceSidebar } from "../../ui/workspace-sidebar.js"
 
 export function BackupsView() {
   const backups = useBackups()
+  const overview = useOverview()
   const route = useRoute()
+  const layout = useResponsiveLayout()
   const [hovered, setHovered] = useState<number | null>(null)
   const selected = backups.backup.items[backups.backup.selected]
   const rows = visibleRows(backups.backup.items, backups.backup.selected, 16)
+  const dataState = backups.error
+    ? "Load failed"
+    : backups.refreshing
+      ? "Refreshing in background"
+      : backups.stale && backups.backup.items.length > 0
+        ? "Cached data"
+        : "Ready"
 
   return (
     <Box id="backups" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-      <WorkspaceSidebar selected="Data" />
-      <Box id="backup-list" flexGrow={1} border borderColor={TUI.border} padding={1} backgroundColor={TUI.panel}>
-        <Text fg={TUI.text} height={1}>
-          Database backups
-        </Text>
-        <Text fg={TUI.muted} height={1}>
-          Create, verify, and inspect local backup files.
-        </Text>
-        {backups.backup.items.length === 0 ? (
-          <EmptyState
-            title="No backups yet"
-            explanation="No toolkit-created database backups were found yet."
-            actions={[
-              { key: "c", label: "create backup" },
-              { key: "r", label: "refresh" },
-              { key: "Esc", label: "back" },
-            ]}
-          />
-        ) : (
-          <>
-            <Box height={1} paddingLeft={1}>
-              <Text fg={TUI.dim} height={1}>
-                {"  Created            Size      Reason"}
-              </Text>
-            </Box>
-            {rows.map(({ item, index }) => (
-              <Box
-                key={item.id}
-                height={1}
-                paddingLeft={1}
-                backgroundColor={rowBackground(index, backups.backup.selected, hovered)}
-                onMouseOver={(event) => {
-                  event.stopPropagation()
-                  setHovered(index)
-                }}
-                onMouseOut={(event) => {
-                  event.stopPropagation()
-                  setHovered(null)
-                }}
-                onMouseDown={(event) => {
-                  event.stopPropagation()
-                  backups.backup.select(index)
-                }}
-              >
-                <Text fg={index === backups.backup.selected ? TUI.blue : TUI.text} height={1}>
-                  {formatRow(item, index === backups.backup.selected)}
+      <WorkspaceSidebar selected="Data" focused={overview.pane.focused === "sidebar"} />
+      <MainPanel id="backup-main" title="Database backups" summary={`Create, verify, and inspect local backup files. ${dataState}.`} focused={overview.pane.focused === "actions"}>
+        <Box id="backup-list" flexGrow={1} marginTop={1} border borderColor={TUI.border} padding={1} backgroundColor={TUI.panel}>
+          {backups.error && backups.backup.items.length === 0 ? (
+            <EmptyState
+              title="Backup load failed"
+              explanation={backups.error}
+              actions={[
+                { key: "r", label: "refresh" },
+                { key: "Esc", label: "back" },
+              ]}
+            />
+          ) : backups.loading && backups.backup.items.length === 0 ? (
+            <EmptyState title="Loading backups..." explanation="Scanning local toolkit-created database backups." />
+          ) : backups.backup.items.length === 0 ? (
+            <EmptyState
+              title="No backups yet"
+              explanation="No toolkit-created database backups were found yet."
+              actions={[
+                { key: "c", label: "create backup" },
+                { key: "r", label: "refresh" },
+                { key: "Esc", label: "back" },
+              ]}
+            />
+          ) : (
+            <>
+              <DataStateLine refreshing={backups.refreshing} stale={backups.stale} error={backups.error} />
+              <Box height={1} paddingLeft={1}>
+                <Text fg={TUI.dim} height={1}>
+                  {"  Created            Size      Reason"}
                 </Text>
               </Box>
-            ))}
-          </>
-        )}
-      </Box>
+              {rows.map(({ item, index }) => (
+                <Box
+                  key={item.id}
+                  height={1}
+                  paddingLeft={1}
+                  backgroundColor={rowBackground(index, backups.backup.selected, hovered)}
+                  onMouseOver={(event) => {
+                    event.stopPropagation()
+                    setHovered(index)
+                  }}
+                  onMouseOut={(event) => {
+                    event.stopPropagation()
+                    setHovered(null)
+                  }}
+                  onMouseDown={(event) => {
+                    event.stopPropagation()
+                    backups.backup.select(index)
+                  }}
+                >
+                  <Text fg={index === backups.backup.selected ? TUI.blue : TUI.text} height={1}>
+                    {formatRow(item, index === backups.backup.selected, layout.compact ? 18 : 32)}
+                  </Text>
+                </Box>
+              ))}
+            </>
+          )}
+        </Box>
+      </MainPanel>
 
-      <BackupDetail backup={selected} restoreImplemented={route.flags.restoreImplemented} />
+      {layout.showDetailPanel ? <BackupDetail backup={selected} restoreImplemented={route.flags.restoreImplemented} /> : null}
     </Box>
   )
+}
+
+function DataStateLine(props: { refreshing: boolean; stale: boolean; error: string | undefined }) {
+  if (props.error) {
+    return (
+      <Text fg={TUI.red} height={1}>
+        {`Last refresh failed: ${props.error}`}
+      </Text>
+    )
+  }
+  if (props.refreshing) {
+    return (
+      <Text fg={TUI.blue} height={1}>
+        Refreshing backups in background...
+      </Text>
+    )
+  }
+  if (props.stale) {
+    return (
+      <Text fg={TUI.yellow} height={1}>
+        Cached backup list. Press r to refresh.
+      </Text>
+    )
+  }
+  return null
 }
 
 function BackupDetail(props: { backup: BackupFile | undefined; restoreImplemented: boolean }) {
@@ -125,11 +169,11 @@ function rowBackground(index: number, selected: number, hovered: number | null) 
   return TUI.panel
 }
 
-function formatRow(item: BackupFile, selected: boolean) {
+function formatRow(item: BackupFile, selected: boolean, maxReason: number) {
   const marker = selected ? ">" : " "
   const created = formatDate(item.mtime).padEnd(16, " ")
   const size = formatSize(item.size).padEnd(9, " ")
-  return `${marker} ${created}  ${size} ${item.reason ?? "-"}`
+  return `${marker} ${created}  ${size} ${truncate(item.reason ?? "-", maxReason)}`
 }
 
 function formatDate(value: number) {

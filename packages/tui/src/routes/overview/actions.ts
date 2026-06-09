@@ -28,8 +28,8 @@ export function recommendedActionsFromState(
   return [
     {
       id: "workspace-repair",
-      section: "Data",
-      category: repair.category,
+      section: "Repairs",
+      category: "Repairs",
       status: repair.status,
       title: repair.label,
       description: repair.description,
@@ -138,7 +138,7 @@ export function commandPaletteItems(
     {
       id: "workspace-db-schema",
       title: "Workspace DB schema",
-      category: "Data",
+      category: "Repairs",
       status: repair.status,
       actionHint: "Open schema repair detail",
       run: routes.openRepairDetail,

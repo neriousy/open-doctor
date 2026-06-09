@@ -1,6 +1,6 @@
 // Shared state shapes for the OpenTUI React app.
 export type View = "overview" | "logs" | "archived" | "data" | "config" | "settings" | "repair-detail" | "backups"
-export type SidebarSection = "Overview" | "Logs" | "Sessions" | "Data" | "Config" | "Settings"
+export type SidebarSection = "Overview" | "Logs" | "Sessions" | "Repairs" | "Data" | "Config" | "Settings"
 export type OverviewPane = "sidebar" | "actions"
 export type LogsPane = "sources" | "entries"
 export type LogFilter = "ALL" | "ERRORS" | "WARNINGS" | "SEARCH"

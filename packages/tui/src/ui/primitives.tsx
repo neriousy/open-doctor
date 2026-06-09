@@ -1,5 +1,6 @@
 // Shared OpenTUI layout and display primitives.
 import type { BoxProps, TextProps } from "@opentui/react"
+import { useTerminalDimensions } from "@opentui/react"
 import { createElement, type ReactNode } from "react"
 import { shortenPath, statusColor, TUI } from "./primitives-model.js"
 import type { DetailsSection, EmptyStateAction, SidebarItem, StatusKind } from "./primitives-model.js"
@@ -78,16 +79,24 @@ export function MainPanel(props: { id?: string; title?: string; summary?: string
 }
 
 export function Footer(props: { text: string }) {
+  const { width } = useTerminalDimensions()
+  const text = truncateLine(props.text, Math.max(16, width - 18))
+
   return (
-    <Box id="footer" height={2} marginTop={1} paddingLeft={1} flexDirection="row" justifyContent="space-between">
-      <Text id="controls" fg={TUI.dim}>
-        {props.text}
+    <Box id="footer" height={1} marginTop={1} paddingLeft={1} flexDirection="row" justifyContent="space-between">
+      <Text id="controls" fg={TUI.dim} height={1}>
+        {text}
       </Text>
-      <Text id="safety" fg={TUI.green}>
+      <Text id="safety" fg={TUI.green} height={1}>
         Read-only
       </Text>
     </Box>
   )
+}
+
+function truncateLine(value: string, max: number) {
+  if (value.length <= max) return value
+  return `${value.slice(0, Math.max(1, max - 3))}...`
 }
 
 export function Sidebar<T extends string>(props: {

@@ -2,12 +2,16 @@
 import { useState } from "react"
 import type { LogEntry, LogLevel, LogSource } from "@open-doctor/core/utils/logs"
 import { useLogs } from "../../context/logs.js"
-import { Box, EmptyState, Text } from "../../ui/primitives.js"
-import { shortenPath, TUI } from "../../ui/primitives-model.js"
+import { useOverview } from "../../context/overview.js"
+import { Box, EmptyState, MainPanel, Text } from "../../ui/primitives.js"
+import { useResponsiveLayout } from "../../ui/layout.js"
+import { TUI } from "../../ui/primitives-model.js"
 import { WorkspaceSidebar } from "../../ui/workspace-sidebar.js"
 
 export function LogsView() {
   const logs = useLogs()
+  const overview = useOverview()
+  const layout = useResponsiveLayout()
   const [hovered, setHovered] = useState<{ source: number | null; entry: number | null }>({ source: null, entry: null })
   const selectedSource = logs.source.items[logs.source.selected]
   const selectedEntry = logs.entry.items[logs.entry.selected]
@@ -15,65 +19,72 @@ export function LogsView() {
   const entryRows = visibleRows(logs.entry.items, logs.entry.selected, 24)
   const selectedEntryId = selectedEntry?.entryId
   const filterLabel = logs.filter.value === "SEARCH" ? `Search ${logs.search.active ? ">" : ""}${logs.search.query}` : logs.filter.value.toLowerCase()
+  const dataState = logs.error
+    ? "Load failed"
+    : logs.refreshing
+      ? "Refreshing in background"
+      : logs.stale && logs.source.items.length > 0
+        ? "Cached data"
+        : "Ready"
 
   return (
     <Box id="logs" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-      <WorkspaceSidebar selected="Logs" />
+      <WorkspaceSidebar selected="Logs" focused={overview.pane.focused === "sidebar"} />
 
-      <Box flexGrow={1} flexDirection="column">
-        <Text fg={TUI.text} height={1}>
-          Logs
-        </Text>
-        <Text fg={TUI.muted} height={1}>
-          Review issues and inspect context.
-        </Text>
-
+      <MainPanel id="logs-main" title="Logs" summary={`Review issues and inspect context. ${dataState}.`} focused={false}>
         <Box id="log-columns" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-          <Box
-            id="log-sources"
-            width={30}
-            border
-            borderColor={logs.pane.active === "sources" ? TUI.borderActive : TUI.border}
-            padding={1}
-            backgroundColor={TUI.panel}
-          >
-            <Text fg={TUI.text} height={1}>
-              Log sources
-            </Text>
-            <Text fg={TUI.dim} height={1}>
-              {logs.loading ? "Refreshing..." : "Select a source"}
-            </Text>
-            {logs.source.items.length === 0 ? (
-              <EmptyState title="No log files found" explanation="Checked known OpenCode log locations." />
-            ) : null}
-            {sourceRows.map(({ item, index }) => (
-              <Box
-                key={item.id}
-                height={2}
-                paddingLeft={1}
-                backgroundColor={rowBackground(index, logs.source.selected, hovered.source, logs.pane.active === "sources")}
-                onMouseOver={(event) => {
-                  event.stopPropagation()
-                  setHovered((current) => ({ ...current, source: index }))
-                }}
-                onMouseOut={(event) => {
-                  event.stopPropagation()
-                  setHovered((current) => ({ ...current, source: null }))
-                }}
-                onMouseDown={(event) => {
-                  event.stopPropagation()
-                  logs.source.select(index)
-                }}
-              >
-                <Text fg={index === logs.source.selected ? TUI.blue : TUI.text} height={1}>
-                  {`${index === logs.source.selected && logs.pane.active === "sources" ? ">" : index === logs.source.selected ? "|" : " "} ${truncate(item.label, 22)}`}
-                </Text>
-                <Text fg={TUI.dim} height={1}>
-                  {sourceSummary(item)}
-                </Text>
-              </Box>
-            ))}
-          </Box>
+          {layout.showLogSourcePanel ? (
+            <Box
+              id="log-sources"
+              width={46}
+              border
+              borderColor={logs.pane.active === "sources" ? TUI.borderActive : TUI.border}
+              padding={1}
+              backgroundColor={TUI.panel}
+            >
+              <Text fg={TUI.text} height={1}>
+                Log sources
+              </Text>
+              <Text fg={TUI.dim} height={1}>
+                {logs.loading ? "Refreshing..." : "Select a source"}
+              </Text>
+              <DataStateLine refreshing={logs.refreshing} stale={logs.stale} error={logs.error} />
+              {logs.error && logs.source.items.length === 0 ? (
+                <EmptyState title="Log source load failed" explanation={logs.error} />
+              ) : logs.loading && logs.source.items.length === 0 ? (
+                <EmptyState title="Loading log sources..." explanation="Scanning known OpenCode log locations." />
+              ) : logs.source.items.length === 0 ? (
+                <EmptyState title="No log files found" explanation="Checked known OpenCode log locations." />
+              ) : null}
+              {sourceRows.map(({ item, index }) => (
+                <Box
+                  key={item.id}
+                  height={2}
+                  paddingLeft={1}
+                  backgroundColor={rowBackground(index, logs.source.selected, hovered.source, logs.pane.active === "sources")}
+                  onMouseOver={(event) => {
+                    event.stopPropagation()
+                    setHovered((current) => ({ ...current, source: index }))
+                  }}
+                  onMouseOut={(event) => {
+                    event.stopPropagation()
+                    setHovered((current) => ({ ...current, source: null }))
+                  }}
+                  onMouseDown={(event) => {
+                    event.stopPropagation()
+                    logs.source.select(index)
+                  }}
+                >
+                  <Text fg={index === logs.source.selected ? TUI.blue : TUI.text} height={1}>
+                    {`${index === logs.source.selected && logs.pane.active === "sources" ? ">" : index === logs.source.selected ? "|" : " "} ${truncate(item.label, 36)}`}
+                  </Text>
+                  <Text fg={TUI.dim} height={1}>
+                    {sourceSummary(item)}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+          ) : null}
 
           <Box
             id="log-entries"
@@ -87,7 +98,12 @@ export function LogsView() {
               <Text fg={TUI.text}>Entries</Text>
               <Text fg={TUI.dim}>{`Filter: ${filterLabel}`}</Text>
             </Box>
-            {logs.entry.items.length === 0 ? (
+            {!layout.showLogSourcePanel ? <DataStateLine refreshing={logs.refreshing} stale={logs.stale} error={logs.error} /> : null}
+            {logs.error && selectedSource && logs.entry.items.length === 0 ? (
+              <EmptyState title="Log entry load failed" explanation={logs.error} />
+            ) : logs.loading && selectedSource && logs.entry.items.length === 0 ? (
+              <EmptyState title="Loading log entries..." explanation={`Reading ${selectedSource.label}.`} />
+            ) : logs.entry.items.length === 0 ? (
               selectedSource ? (
                 <EmptyState title="No matching log lines" explanation={`No entries match filter ${filterLabel}.`} />
               ) : (
@@ -114,59 +130,40 @@ export function LogsView() {
                 }}
               >
                 <Text fg={lineColor(item.inheritedSeverity, item.isContinuation, index === logs.entry.selected)} height={1}>
-                  {formatLogRow(item, index === logs.entry.selected && logs.pane.active === "entries", selectedSource)}
+                  {formatLogRow(item, index === logs.entry.selected && logs.pane.active === "entries", selectedSource, layout.compact ? 28 : 96)}
                 </Text>
               </Box>
             ))}
           </Box>
-
-          <LogDetail source={selectedSource} entry={selectedEntry} />
         </Box>
-      </Box>
+      </MainPanel>
     </Box>
   )
 }
 
-function LogDetail(props: { source: LogSource | undefined; entry: LogEntry | undefined }) {
-  const entry = props.entry
-  const title = entry ? truncate(entry.parentMessage || entry.message || entry.raw, 64) : props.source?.label ?? "No log selected"
-
-  return (
-    <Box width={40} border borderColor={TUI.border} padding={1} flexDirection="column" backgroundColor={TUI.panel}>
-      <Text fg={TUI.dim} height={1}>
-        Log
+function DataStateLine(props: { refreshing: boolean; stale: boolean; error: string | undefined }) {
+  if (props.error) {
+    return (
+      <Text fg={TUI.red} height={1}>
+        {`Last refresh failed: ${props.error}`}
       </Text>
-      <Text fg={TUI.text} wrapMode="word">
-        {title}
+    )
+  }
+  if (props.refreshing) {
+    return (
+      <Text fg={TUI.blue} height={1}>
+        Refreshing logs in background...
       </Text>
-      <DetailBlock label="Status" text={entry?.inheritedSeverity ?? "No entry selected"} color={entry ? lineColor(entry.inheritedSeverity, false, false) : TUI.dim} />
-      <DetailBlock label="Why it matters" text={entry ? impactText(entry) : "Select a log entry to inspect the message and source."} />
-      <DetailBlock label="Source" text={props.source ? shortenPath(props.source.path, 38) : "No source"} />
-      <DetailBlock label="Suggested next step" text={entry && relatedRepair(entry) ? "Open the related database repair from Data." : "Open the source file or copy details for manual inspection."} />
-      <DetailBlock label="Safety" text="Reviewing logs is read-only. No files will be modified." color={TUI.green} />
-      <Box marginTop={1} flexDirection="column">
-        <Text fg={TUI.blue} height={1}>
-          Open source file
-        </Text>
-        <Text fg={TUI.muted} height={1}>
-          Raw details collapsed
-        </Text>
-      </Box>
-    </Box>
-  )
-}
-
-function DetailBlock(props: { label: string; text: string; color?: string }) {
-  return (
-    <Box flexDirection="column" marginTop={1}>
-      <Text fg={TUI.dim} height={1}>
-        {props.label}
+    )
+  }
+  if (props.stale) {
+    return (
+      <Text fg={TUI.yellow} height={1}>
+        Cached logs. Press r to refresh.
       </Text>
-      <Text fg={props.color ?? TUI.muted} wrapMode="word">
-        {props.text}
-      </Text>
-    </Box>
-  )
+    )
+  }
+  return null
 }
 
 function visibleRows<T>(items: T[], selected: number, limit: number) {
@@ -189,12 +186,12 @@ function logRowBackground(item: LogEntry, selectedEntryId: string | undefined, i
   return TUI.panel
 }
 
-function formatLogRow(entry: LogEntry, selected: boolean, source: LogSource | undefined) {
+function formatLogRow(entry: LogEntry, selected: boolean, source: LogSource | undefined, maxMessage: number) {
   const marker = selected ? ">" : " "
-  if (entry.isContinuation) return `${marker} ${truncate(entry.text, 124)}`
+  if (entry.isContinuation) return `${marker} ${truncate(entry.text, maxMessage + 20)}`
 
   const timestamp = entry.timestamp ? compactTimestamp(entry.timestamp) : "time?"
-  return `${marker} ${timestamp} · ${entry.inheritedSeverity.padEnd(5, " ")} · ${sourceKind(source).padEnd(12, " ")} · ${truncate(entry.message, 88)}`
+  return `${marker} ${timestamp} · ${entry.inheritedSeverity.padEnd(5, " ")} · ${sourceKind(source).padEnd(12, " ")} · ${truncate(entry.message, maxMessage)}`
 }
 
 function lineColor(level: LogLevel, continuation: boolean, selected: boolean) {
@@ -211,12 +208,6 @@ function sourceSummary(source: LogSource) {
   return formatSize(source.size)
 }
 
-function impactText(entry: LogEntry) {
-  if (entry.inheritedSeverity === "ERROR") return "This may explain a failed command, provider call, or local startup path."
-  if (entry.inheritedSeverity === "WARN") return "This is worth reviewing when behavior looks degraded."
-  return "This entry provides context for normal OpenCode activity."
-}
-
 function compactTimestamp(value: string) {
   const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/)
   if (match) return match[2]
@@ -226,11 +217,6 @@ function compactTimestamp(value: string) {
 function sourceKind(source: LogSource | undefined) {
   if (!source) return "log"
   return source.label.split(" ")[0] ?? "log"
-}
-
-function relatedRepair(entry: LogEntry) {
-  const value = `${entry.raw} ${entry.message} ${entry.parentMessage}`.toLowerCase()
-  return value.includes("no such column: name") || value.includes("workspace.name") || value.includes("workspace schema")
 }
 
 function formatSize(bytes: number) {

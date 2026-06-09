@@ -1,1 +1,1 @@
-export const SIDEBAR_ITEMS = ["Overview", "Logs", "Sessions", "Data", "Config", "Settings"] as const
+export const SIDEBAR_ITEMS = ["Overview", "Logs", "Sessions", "Repairs", "Data", "Config", "Settings"] as const

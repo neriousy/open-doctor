@@ -33,10 +33,16 @@ export type LogsContext = {
     moveMatch: (direction: 1 | -1) => void
   }
   loading: boolean
+  refreshing: boolean
+  stale: boolean
+  error: string | undefined
   actions: {
     refresh: () => void
     move: (direction: 1 | -1) => void
+    moveBy: (amount: number) => void
+    jump: (position: "start" | "end") => void
     openRelatedRepair: () => void
+    copySelectedPath: () => void
   }
 }
 

@@ -26,10 +26,15 @@ export type SessionsContext = {
     handleKey: (key: { name?: string; sequence?: string }) => void
   }
   loading: boolean
+  refreshing: boolean
+  stale: boolean
+  error: string | undefined
   pendingUnarchive: number
   actions: {
     refresh: () => void
     move: (direction: 1 | -1) => void
+    moveBy: (amount: number) => void
+    jump: (position: "start" | "end") => void
     requestUnarchive: () => void
   }
 }

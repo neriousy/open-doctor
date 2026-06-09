@@ -15,6 +15,7 @@
     "@open-doctor/core": "workspace:*",
     "@opentui/core": "catalog:",
     "@opentui/react": "catalog:",
+    "@tanstack/react-query": "catalog:",
     "effect": "catalog:",
     "react": "catalog:"
   }
