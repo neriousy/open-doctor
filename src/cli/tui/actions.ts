@@ -7,12 +7,22 @@ import { repairNoSuchColumnName } from "../../repairs/no-such-column-name.js"
 import { parseDbAndOptions } from "../input.js"
 import type { ChildResult, ToastInput } from "./types.js"
 
-export function runRepair(setStatus: (value: string) => void, showToast: (toast: ToastInput) => void) {
-  setStatus("Repair running...")
-  showToast({ variant: "info", message: "Running repair..." })
-  Effect.runPromise(repairNoSuchColumnName(parseDbAndOptions([])))
+export function runRepair(
+  setStatus: (value: string) => void,
+  showToast: (toast: ToastInput) => void,
+  options: { dryRun?: boolean; onComplete?: () => void } = {},
+) {
+  const input = parseDbAndOptions(options.dryRun ? ["--dry-run"] : [])
+  setStatus(options.dryRun ? "Repair dry run running..." : "Repair running...")
+  showToast({ variant: "info", message: options.dryRun ? "Running repair dry run..." : "Running repair..." })
+  Effect.runPromise(repairNoSuchColumnName(input))
     .then((result) => {
-      const message = result.changes.length === 0 ? "No repair needed" : `Repair complete. Backup: ${result.backup ?? "none"}`
+      const message =
+        result.changes.length === 0
+          ? "No repair needed"
+          : result.dryRun
+            ? `Dry run found ${result.changes.length} planned change(s)`
+            : `Repair complete. Backup: ${result.backup ?? "none"}`
       setStatus(message)
       showToast({ variant: "success", message })
     })
@@ -21,6 +31,7 @@ export function runRepair(setStatus: (value: string) => void, showToast: (toast:
       setStatus(message)
       showToast({ variant: "error", message })
     })
+    .finally(() => options.onComplete?.())
 }
 
 export function runUnarchiveInChild(sessionID: string, db: string) {
