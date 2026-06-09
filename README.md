@@ -1,4 +1,4 @@
-# open-doctor workspace
+# open-doctor
 
 Support toolkit for repairing and inspecting local OpenCode data.
 
