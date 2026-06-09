@@ -1,6 +1,6 @@
 {
   "name": "open-doctor-workspace",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Support toolkit for repairing and inspecting local OpenCode data",
   "private": true,
   "type": "module",
@@ -27,7 +27,7 @@
     "build": "bun turbo build",
     "check": "bun turbo typecheck",
     "start": "bun run --cwd packages/open-doctor start",
-    "pack:cli": "cd packages/open-doctor && bun pm pack",
+    "pack:cli": "bun run --cwd packages/open-doctor pack:npm",
     "doctor": "bunx react-doctor@latest"
   },
   "devDependencies": {

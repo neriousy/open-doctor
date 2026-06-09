@@ -1,10 +1,10 @@
 {
   "name": "open-doctor",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Support toolkit for repairing and inspecting local OpenCode data",
   "type": "module",
   "bin": {
-    "open-doctor": "./bin/open-doctor"
+    "open-doctor": "bin/open-doctor"
   },
   "files": [
     "bin",
@@ -13,6 +13,8 @@
   ],
   "scripts": {
     "build": "bun ./script/build.ts",
+    "pack:npm": "bun ./script/stage-npm.ts && cd .release/open-doctor && bun pm pack",
+    "publish:npm": "bun ./script/stage-npm.ts && cd .release/open-doctor && npm publish *.tgz",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node ./dist/index.js"
   },

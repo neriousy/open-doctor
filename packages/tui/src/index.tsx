@@ -5,6 +5,7 @@ import type { CliRenderer } from "@opentui/core"
 import { createCliRenderer } from "@opentui/core"
 import { createRoot } from "@opentui/react"
 import { ToolkitApp } from "./app.js"
+import { toolkitQueryClient } from "./query/client.js"
 
 export async function runTui() {
   ensureFfiRuntime()
@@ -17,13 +18,19 @@ export async function runTui() {
   const lifecycle = createTuiLifecycle(renderer, () => root.unmount())
   root.render(<ToolkitApp onExit={lifecycle.exit} />)
   await lifecycle.done
+  process.exit(0)
 }
 
 function createTuiLifecycle(renderer: CliRenderer, unmount: () => void) {
   let cleanupStarted = false
+  let doneResolved = false
   let resolveDone!: () => void
   const done = new Promise<void>((resolve) => {
-    resolveDone = resolve
+    resolveDone = () => {
+      if (doneResolved) return
+      doneResolved = true
+      resolve()
+    }
   })
 
   const exit = () => {
@@ -33,8 +40,10 @@ function createTuiLifecycle(renderer: CliRenderer, unmount: () => void) {
     process.off("SIGTERM", onSignal)
     try {
       unmount()
+      toolkitQueryClient.clear()
     } finally {
       if (!renderer.isDestroyed) renderer.destroy()
+      setImmediate(resolveDone)
     }
   }
 

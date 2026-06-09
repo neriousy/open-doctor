@@ -22,7 +22,7 @@
     },
     "packages/core": {
       "name": "@open-doctor/core",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "dependencies": {
         "better-sqlite3": "^12.10.0",
         "effect": "catalog:",
@@ -30,9 +30,9 @@
     },
     "packages/open-doctor": {
       "name": "open-doctor",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "bin": {
-        "open-doctor": "./bin/open-doctor",
+        "open-doctor": "bin/open-doctor",
       },
       "dependencies": {
         "@opentui/core": "catalog:",
@@ -52,7 +52,7 @@
     },
     "packages/tui": {
       "name": "@open-doctor/tui",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "dependencies": {
         "@open-doctor/core": "workspace:*",
         "@opentui/core": "catalog:",
