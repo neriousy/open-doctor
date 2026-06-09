@@ -11,17 +11,23 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
+    "build": "tsc -p tsconfig.json && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --external:@opentui/core --outfile=dist/index.js && node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
     "check": "tsc -p tsconfig.json --noEmit",
     "prepare": "npm run build",
     "start": "node ./dist/index.js"
   },
   "dependencies": {
-    "@opentui/core": "0.3.4",
-    "effect": "4.0.0-beta.74"
+    "@opentui/core": "^0.4.0",
+    "@opentui/react": "^0.4.0",
+    "effect": "4.0.0-beta.74",
+    "react": "^19.2.7",
+    "react-devtools-core": "^7.0.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "24.12.2",
+    "@types/react": "^19.2.17",
+    "esbuild": "^0.28.0",
     "typescript": "5.8.2"
   },
   "engines": {

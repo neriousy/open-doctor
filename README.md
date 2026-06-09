@@ -7,8 +7,11 @@ Support toolkit for local OpenCode data.
 ```sh
 npx opencode-toolkit
 npx opencode-toolkit repair-db
+npx opencode-toolkit repair no-such-column-name
 npx opencode-toolkit sessions archived
 npx opencode-toolkit sessions unarchive <session-id>
+npx opencode-toolkit utils sessions archived
+npx opencode-toolkit utils sessions unarchive <session-id>
 ```
 
 For local development:
@@ -28,15 +31,30 @@ $XDG_DATA_HOME/opencode/opencode.db
 If `OPENCODE_DB` is set, that path is used instead. You can also pass a database path directly:
 
 ```sh
-npx opencode-toolkit repair-db ~/.local/share/opencode/opencode.db
-npx opencode-toolkit sessions unarchive ses_... ~/.local/share/opencode/opencode.db
+npx opencode-toolkit repair no-such-column-name ~/.local/share/opencode/opencode.db
+npx opencode-toolkit utils sessions unarchive ses_... ~/.local/share/opencode/opencode.db
 ```
 
 ## Commands
 
-- `repair-db [db]`: repairs the known workspace migration wedge behind `Error: no such column: name`.
-- `sessions archived [db]`: lists archived sessions.
-- `sessions unarchive <session-id> [db]`: clears `session.time_archived` for one session.
-- `db path`: prints the resolved database path.
+Running `opencode-toolkit` without arguments opens an OpenTUI menu grouped into Repair and Utils sections.
+The interactive menu uses OpenTUI's native renderer. Under Node it requires Node 26.x with `--experimental-ffi`; the toolkit re-execs itself with that flag when opening the menu. Non-interactive commands use the package engine listed in `package.json`.
+
+### Repair
+
+- `repair no-such-column-name [db]`: repairs the known workspace migration wedge behind `Error: no such column: name`.
+- `repair-db [db]`: compatibility alias for `repair no-such-column-name`.
+
+### Utils
+
+- `utils sessions archived [db]`: lists archived sessions.
+- `utils sessions unarchive <session-id> [db]`: clears `session.time_archived` for one session.
+- `utils db path [db]`: prints the resolved database path.
+
+Compatibility aliases:
+
+- `sessions archived [db]`
+- `sessions unarchive <session-id> [db]`
+- `db path [db]`
 
 Every mutating command creates a SQLite backup first using `VACUUM INTO`. Use `--no-backup` only if you already made a separate backup.

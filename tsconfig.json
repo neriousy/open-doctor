@@ -5,6 +5,8 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2024"],
     "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "@opentui/react",
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
@@ -12,5 +14,5 @@
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
