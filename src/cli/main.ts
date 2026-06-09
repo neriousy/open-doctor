@@ -77,18 +77,18 @@ export const main = Effect.fn("Cli.main")(function* (args: string[]) {
 })
 
 export function printHelp() {
-  console.log(`opencode-toolkit
+  console.log(`open-doctor
 
 Usage:
-  opencode-toolkit
-  opencode-toolkit repair-db [db] [--dry-run] [--no-backup]
-  opencode-toolkit repair no-such-column-name [db] [--dry-run] [--no-backup]
-  opencode-toolkit sessions archived [db]
-  opencode-toolkit sessions unarchive <session-id> [db] [--dry-run] [--no-backup]
-  opencode-toolkit utils sessions archived [db]
-  opencode-toolkit utils sessions unarchive <session-id> [db] [--dry-run] [--no-backup]
-  opencode-toolkit db path [db]
-  opencode-toolkit utils db path [db]
+  open-doctor
+  open-doctor repair-db [db] [--dry-run] [--no-backup]
+  open-doctor repair no-such-column-name [db] [--dry-run] [--no-backup]
+  open-doctor sessions archived [db]
+  open-doctor sessions unarchive <session-id> [db] [--dry-run] [--no-backup]
+  open-doctor utils sessions archived [db]
+  open-doctor utils sessions unarchive <session-id> [db] [--dry-run] [--no-backup]
+  open-doctor db path [db]
+  open-doctor utils db path [db]
 
 Repair:
   Error: no such column: name

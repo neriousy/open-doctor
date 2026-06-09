@@ -1,10 +1,10 @@
 {
-  "name": "opencode-toolkit",
-  "version": "0.1.0",
+  "name": "open-doctor",
+  "version": "0.0.1",
   "description": "Support toolkit for repairing and inspecting local OpenCode data",
   "type": "module",
   "bin": {
-    "opencode-toolkit": "./dist/index.js"
+    "open-doctor": "dist/index.js"
   },
   "files": [
     "dist",

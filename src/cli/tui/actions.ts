@@ -36,7 +36,7 @@ export function runRepair(
 
 export function runUnarchiveInChild(sessionID: string, db: string) {
   const script = process.argv[1]
-  if (!script) return Promise.reject(new Error("Cannot locate opencode-toolkit entrypoint"))
+  if (!script) return Promise.reject(new Error("Cannot locate open-doctor entrypoint"))
 
   return new Promise<ChildResult>((resolve, reject) => {
     const child = spawn(process.execPath, [script, "utils", "sessions", "unarchive", sessionID, db], {

@@ -723,7 +723,7 @@ export function ToolkitApp(props: { onExit: () => void }) {
     <box id="root" flexDirection="column" width="100%" height="100%" padding={1} backgroundColor="#0f1419">
       <box id="header" height={5} border borderColor="#263544" paddingLeft={2} paddingRight={2} paddingTop={1}>
         <text id="title" fg="#d6deeb" height={1}>
-          OpenCode Toolkit
+          Open Doctor
         </text>
         <text id="subtitle" fg="#7893ad" height={1}>
           {`${health.dataDir} | Health: ${health.issueCount} issue(s) | Backup: ${health.backupStatus}`}

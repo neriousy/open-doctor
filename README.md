@@ -1,17 +1,17 @@
-# opencode-toolkit
+# open-doctor
 
 Support toolkit for local OpenCode data.
 
 ## Usage
 
 ```sh
-npx opencode-toolkit
-npx opencode-toolkit repair-db
-npx opencode-toolkit repair no-such-column-name
-npx opencode-toolkit sessions archived
-npx opencode-toolkit sessions unarchive <session-id>
-npx opencode-toolkit utils sessions archived
-npx opencode-toolkit utils sessions unarchive <session-id>
+npx open-doctor
+npx open-doctor repair-db
+npx open-doctor repair no-such-column-name
+npx open-doctor sessions archived
+npx open-doctor sessions unarchive <session-id>
+npx open-doctor utils sessions archived
+npx open-doctor utils sessions unarchive <session-id>
 ```
 
 For local development:
@@ -32,13 +32,13 @@ $XDG_DATA_HOME/opencode/opencode.db
 OpenCode currently gets that data directory from `xdg-basedir@5.1.0`, so the `~/.local/share` fallback is used when `XDG_DATA_HOME` is not set. If `OPENCODE_DB` is set, that path is used instead. You can also pass a database path directly:
 
 ```sh
-npx opencode-toolkit repair no-such-column-name ~/.local/share/opencode/opencode.db
-npx opencode-toolkit utils sessions unarchive ses_... ~/.local/share/opencode/opencode.db
+npx open-doctor repair no-such-column-name ~/.local/share/opencode/opencode.db
+npx open-doctor utils sessions unarchive ses_... ~/.local/share/opencode/opencode.db
 ```
 
 ## Commands
 
-Running `opencode-toolkit` without arguments opens an OpenTUI menu grouped into Repair and Utils sections.
+Running `open-doctor` without arguments opens an OpenTUI menu grouped into Repair and Utils sections.
 The interactive menu uses OpenTUI's native renderer. Under Node it requires Node 26.x with `--experimental-ffi`; the toolkit re-execs itself with that flag when opening the menu. Non-interactive commands use the package engine listed in `package.json`.
 
 ### Repair
