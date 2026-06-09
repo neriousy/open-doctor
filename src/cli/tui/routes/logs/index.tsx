@@ -19,15 +19,15 @@ function LogsScreen() {
 }
 
 function handleLogsKey(key: KeyInput, route: ReturnType<typeof useRoute>, logs: ReturnType<typeof useLogs>) {
-  if (key.name === "escape") route.goOverview()
-  if (key.name === "left" || key.name === "h") logs.focusLogsPane("sources")
-  if (key.name === "right" || key.name === "l") logs.focusLogsPane("entries")
-  if (key.name === "up" || key.name === "k") logs.moveLogs(-1)
-  if (key.name === "down" || key.name === "j") logs.moveLogs(1)
-  if (key.name === "r") logs.refreshLogs()
-  if (key.name === "f") logs.cycleLogFilter()
-  if (key.name === "s") logs.startLogSearch()
-  if (key.name === "n" && key.sequence !== "N") logs.moveSearchMatch(1)
-  if (key.sequence === "N") logs.moveSearchMatch(-1)
-  if (key.name === "return" || key.name === "enter") logs.openRelatedRepairFromLog()
+  if (key.name === "escape") route.actions.goOverview()
+  if (key.name === "left" || key.name === "h") logs.pane.focus("sources")
+  if (key.name === "right" || key.name === "l") logs.pane.focus("entries")
+  if (key.name === "up" || key.name === "k") logs.actions.move(-1)
+  if (key.name === "down" || key.name === "j") logs.actions.move(1)
+  if (key.name === "r") logs.actions.refresh()
+  if (key.name === "f") logs.filter.cycle()
+  if (key.name === "s") logs.search.start()
+  if (key.name === "n" && key.sequence !== "N") logs.search.moveMatch(1)
+  if (key.sequence === "N") logs.search.moveMatch(-1)
+  if (key.name === "return" || key.name === "enter") logs.actions.openRelatedRepair()
 }

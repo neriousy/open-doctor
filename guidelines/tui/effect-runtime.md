@@ -16,7 +16,6 @@ Rules for this toolkit:
 - Keep Effect in CLI/runtime/domain action boundaries.
 - It is acceptable for domain state hooks to call `Effect.runPromise` when they
   bridge from UI intent into Effect-based utilities.
-- Do not put Effect pipelines in render-only route views.
 - Prefer plain React/OpenTUI state for focus, hover, selected rows, search
   input, and route-local UI state.
 - If the app gains a long-lived renderer lifecycle or external subscription,

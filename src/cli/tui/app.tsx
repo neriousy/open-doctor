@@ -3,7 +3,7 @@ import { useKeyboard } from "@opentui/react"
 import { useEffect, useState } from "react"
 import { formatError } from "../../error.js"
 import { runRepair } from "./actions.js"
-import { actionIndexesForSection, commandPaletteItems, recommendedActionsFromState } from "./routes/overview/actions.js"
+import { commandPaletteItems, recommendedActionsFromState } from "./routes/overview/actions.js"
 import { handleRouteKey } from "./runtime/keyboard.js"
 import { useScreenRoutes } from "./runtime/router.js"
 import { ToolkitShell } from "./runtime/shell.js"
@@ -43,7 +43,7 @@ export function ToolkitApp(props: { onExit: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const { toast, showToast } = useToast()
   const { confirmation, setConfirmation, handleConfirmationKey } = useConfirmation(setStatus)
-  const sessionsState = useSessionsState({
+  const sessionsValue = useSessionsState({
     health,
     quit,
     openLogs,
@@ -51,76 +51,19 @@ export function ToolkitApp(props: { onExit: () => void }) {
     showToast,
     setConfirmation,
   })
-  const {
-    sessions,
-    visibleArchivedSessions,
-    sessionSelected,
-    selectedSessionIds,
-    previewSessionId,
-    loading: loadingSessions,
-    pendingUnarchive,
-    archivedSearch,
-    archivedSearchActive,
-    refreshArchivedSessions,
-    moveArchivedSessions,
-    startArchivedSearch,
-    handleArchivedSearchKey,
-    toggleSelectedArchivedSession,
-    toggleSelectAllArchivedSessions,
-    previewArchivedSession,
-    requestUnarchiveSelectedSessions,
-  } = sessionsState
-  const backupsState = useBackupsState({
+  const backupsValue = useBackupsState({
     health,
     setStatus,
     showToast,
     setConfirmation,
     refreshHealth,
   })
-  const {
-    backups,
-    selectedBackup,
-    hoveredBackup,
-    setHoveredBackup,
-    loadingBackups,
-    refreshBackups,
-    moveBackups,
-    selectBackup,
-    requestCreateBackupConfirmation,
-    verifySelectedBackup,
-    copySelectedBackupPath,
-  } = backupsState
-  const logsState = useLogsState({
+  const logsValue = useLogsState({
     quit,
     openRepairDetail,
     setStatus,
     showToast,
   })
-  const {
-    logSources,
-    visibleLogEntries,
-    selectedLogSource,
-    selectedLogEntry,
-    logsPane,
-    logFilter,
-    logSearch,
-    logSearchActive,
-    loadingLogs,
-    hoveredLogSource,
-    hoveredLogEntry,
-    setHoveredLogSource,
-    setHoveredLogEntry,
-    refreshLogs,
-    focusLogsPane,
-    moveLogs,
-    selectLogSource,
-    selectLogEntry,
-    cycleLogFilter,
-    startLogSearch,
-    handleLogSearchKey,
-    moveSearchMatch,
-    openRelatedRepairFromLog,
-  } = logsState
 
   const actions = recommendedActionsFromState(health, {
     openRepairDetail,
@@ -133,7 +76,6 @@ export function ToolkitApp(props: { onExit: () => void }) {
     setStatus,
     refreshSectionPreview,
   })
-  const visibleActionIndexes = actionIndexesForSection(actions, overviewState.activeSection)
   const restoreImplemented = false
   const commandItems = commandPaletteItems(health, {
     openRepairDetail,
@@ -141,7 +83,7 @@ export function ToolkitApp(props: { onExit: () => void }) {
     openLogs,
     openBackups,
     openSettings,
-    requestCreateBackupConfirmation,
+    requestCreateBackupConfirmation: backupsValue.actions.create,
     refreshHealth,
   })
   const { paletteOpen, paletteQuery, paletteSelected, visibleCommandItems, openCommandPalette, handlePaletteKey } = useCommandPalette(commandItems, {
@@ -150,88 +92,71 @@ export function ToolkitApp(props: { onExit: () => void }) {
   })
 
   const routeValue = {
-    view,
-    restoreImplemented,
-    quit,
-    goOverview,
-    openRepairDetail,
-    openArchivedSessions,
-    openLogs,
-    openBackups,
-    openSettings,
-    refreshSectionPreview,
+    location: {
+      view,
+    },
+    flags: {
+      restoreImplemented,
+    },
+    actions: {
+      quit,
+      goOverview,
+      openRepairDetail,
+      openArchivedSessions,
+      openLogs,
+      openBackups,
+      openSettings,
+      refreshSectionPreview,
+    },
   }
-  const healthValue = { health, status, loadingHealth, setStatus, refreshHealth }
-  const overviewValue = { actions, visibleActionIndexes, ...overviewState }
-  const sessionsValue = {
-    sessions,
-    visibleArchivedSessions,
-    sessionSelected,
-    selectedSessionIds,
-    previewSessionId,
-    loadingSessions,
-    pendingUnarchive,
-    archivedSearch,
-    archivedSearchActive,
-    refreshArchivedSessions,
-    moveArchivedSessions,
-    startArchivedSearch,
-    handleArchivedSearchKey,
-    toggleSelectedArchivedSession,
-    toggleSelectAllArchivedSessions,
-    previewArchivedSession,
-    requestUnarchiveSelectedSessions,
+  const healthValue = {
+    snapshot: health,
+    status: {
+      message: status,
+      set: setStatus,
+    },
+    loading: loadingHealth,
+    actions: {
+      refresh: refreshHealth,
+    },
   }
-  const backupsValue = {
-    backups,
-    selectedBackup,
-    hoveredBackup,
-    setHoveredBackup,
-    loadingBackups,
-    refreshBackups,
-    moveBackups,
-    selectBackup,
-    requestCreateBackupConfirmation,
-    verifySelectedBackup,
-    copySelectedBackupPath,
+  const overviewValue = overviewState
+  const repairValue = {
+    sql: {
+      visible: showSql,
+      toggle: toggleSql,
+    },
+    actions: {
+      dryRun: runDryRepair,
+      requestApply: requestRepairConfirmation,
+    },
   }
-  const logsValue = {
-    logSources,
-    visibleLogEntries,
-    selectedLogSource,
-    selectedLogEntry,
-    logsPane,
-    logFilter,
-    logSearch,
-    logSearchActive,
-    loadingLogs,
-    hoveredLogSource,
-    hoveredLogEntry,
-    setHoveredLogSource,
-    setHoveredLogEntry,
-    refreshLogs,
-    focusLogsPane,
-    moveLogs,
-    selectLogSource,
-    selectLogEntry,
-    cycleLogFilter,
-    startLogSearch,
-    handleLogSearchKey,
-    moveSearchMatch,
-    openRelatedRepairFromLog,
+  const toastValue = {
+    current: toast,
+    actions: {
+      show: showToast,
+    },
   }
-  const repairValue = { showSql, runDryRepair, requestRepairConfirmation, toggleSql }
-  const toastValue = { toast, showToast }
-  const confirmValue = { confirmation, setConfirmation, handleConfirmationKey }
+  const confirmValue = {
+    current: confirmation,
+    actions: {
+      set: setConfirmation,
+      handleKey: handleConfirmationKey,
+    },
+  }
   const overlaysValue = {
-    helpOpen,
-    setHelpOpen,
-    paletteOpen,
-    paletteQuery,
-    visibleCommandItems,
-    paletteSelected,
-    openCommandPalette,
-    handlePaletteKey,
+    help: {
+      open: helpOpen,
+      setOpen: setHelpOpen,
+    },
+    palette: {
+      open: paletteOpen,
+      query: paletteQuery,
+      items: visibleCommandItems,
+      selected: paletteSelected,
+      openPalette: openCommandPalette,
+      handleKey: handlePaletteKey,
+    },
   }
 
   useEffect(() => {
@@ -249,14 +174,14 @@ export function ToolkitApp(props: { onExit: () => void }) {
         setHealth(next)
         if (view === "overview") {
           setStatus(overviewStatus(next))
-          if (overviewState.activeSectionCurrent() === "Overview") {
+          if (overviewState.section.current() === "Overview") {
             const nextActions = recommendedActionsFromState(next, {
               openRepairDetail,
               openArchivedSessions,
               openLogs,
               openBackups,
             })
-            overviewState.selectFirstAvailableAction("Overview", nextActions)
+            overviewState.action.selectFirstAvailable("Overview", nextActions)
           }
         }
       })
@@ -269,9 +194,9 @@ export function ToolkitApp(props: { onExit: () => void }) {
   }
 
   function refreshSectionPreview(section: SidebarSection) {
-    if (section === "Sessions") refreshArchivedSessions()
-    if (section === "Logs") refreshLogs()
-    if (section === "Backups") refreshBackups()
+    if (section === "Sessions") sessionsValue.actions.refresh()
+    if (section === "Logs") logsValue.actions.refresh()
+    if (section === "Backups") backupsValue.actions.refresh()
   }
 
   function goOverview() {
@@ -339,25 +264,25 @@ export function ToolkitApp(props: { onExit: () => void }) {
 
   function openLogs() {
     setView("logs")
-    overviewState.setActiveSection("Logs")
-    refreshLogs()
+    overviewState.section.set("Logs")
+    logsValue.actions.refresh()
   }
 
   function openBackups() {
     setView("backups")
-    overviewState.setActiveSection("Backups")
-    refreshBackups()
+    overviewState.section.set("Backups")
+    backupsValue.actions.refresh()
   }
 
   function openSettings() {
     setView("overview")
-    overviewState.selectSection("Settings")
+    overviewState.section.select("Settings")
   }
 
   function openArchivedSessions() {
     setView("archived")
-    overviewState.setActiveSection("Sessions")
-    refreshArchivedSessions()
+    overviewState.section.set("Sessions")
+    sessionsValue.actions.refresh()
   }
 
   return (
@@ -394,47 +319,47 @@ function ToolkitAppContent() {
   const routes = useScreenRoutes()
 
   useKeyboard((key) => {
-    if (overlays.helpOpen) {
+    if (overlays.help.open) {
       if (key.name === "escape" || key.sequence === "?" || key.name === "q") {
-        if (key.name === "q") route.quit()
-        else overlays.setHelpOpen(false)
+        if (key.name === "q") route.actions.quit()
+        else overlays.help.setOpen(false)
       }
       return
     }
 
-    if (overlays.paletteOpen) {
-      overlays.handlePaletteKey(key)
+    if (overlays.palette.open) {
+      overlays.palette.handleKey(key)
       return
     }
 
     if (key.sequence === "?") {
-      overlays.setHelpOpen(true)
+      overlays.help.setOpen(true)
       return
     }
 
     if (key.name === "/" || key.sequence === "/" || key.name === "p") {
-      overlays.openCommandPalette()
+      overlays.palette.openPalette()
       return
     }
 
-    if (route.view === "archived" && sessions.archivedSearchActive) {
-      sessions.handleArchivedSearchKey(key)
+    if (route.location.view === "archived" && sessions.search.active) {
+      sessions.search.handleKey(key)
       return
     }
 
-    if (route.view === "logs" && logs.logSearchActive) {
-      logs.handleLogSearchKey(key)
+    if (route.location.view === "logs" && logs.search.active) {
+      logs.search.handleKey(key)
       return
     }
 
-    if (key.name === "q") return route.quit()
+    if (key.name === "q") return route.actions.quit()
 
-    if (confirmation.confirmation) {
-      confirmation.handleConfirmationKey(key)
+    if (confirmation.current) {
+      confirmation.actions.handleKey(key)
       return
     }
 
-    handleRouteKey(route.view, routes, key)
+    handleRouteKey(route.location.view, routes, key)
   })
 
   return <ToolkitShell />

@@ -26,42 +26,42 @@ export function ToolkitShell() {
     () => (
       <HeaderStatus
         title="Open Doctor"
-        dataPath={health.health.dataDir}
-        repairCount={repairCountForHeader(health.health.workspaceRepair.status)}
-        archivedCount={health.health.archivedCount}
-        logErrorCount={health.health.logErrorCount}
-        backupStatus={health.health.backupStatus}
+        dataPath={health.snapshot.dataDir}
+        repairCount={repairCountForHeader(health.snapshot.workspaceRepair.status)}
+        archivedCount={health.snapshot.archivedCount}
+        logErrorCount={health.snapshot.logErrorCount}
+        backupStatus={health.snapshot.backupStatus}
       />
     ),
-    [health.health.archivedCount, health.health.backupStatus, health.health.dataDir, health.health.logErrorCount, health.health.workspaceRepair.status],
+    [health.snapshot.archivedCount, health.snapshot.backupStatus, health.snapshot.dataDir, health.snapshot.logErrorCount, health.snapshot.workspaceRepair.status],
   )
 
   const footer = useMemo(
-    () => <Footer text={footerForContext(route.view, overview.activeSection, health.health.workspaceRepair.status, confirmation.confirmation, route.restoreImplemented)} />,
-    [overview.activeSection, confirmation.confirmation, health.health.workspaceRepair.status, route.restoreImplemented, route.view],
+    () => <Footer text={footerForContext(route.location.view, overview.section.active, health.snapshot.workspaceRepair.status, confirmation.current, route.flags.restoreImplemented)} />,
+    [overview.section.active, confirmation.current, health.snapshot.workspaceRepair.status, route.flags.restoreImplemented, route.location.view],
   )
 
   const overlayLayer = useMemo(
     () => (
       <>
-        {toast.toast ? <ToastView toast={toast.toast} /> : null}
-        {confirmation.confirmation ? <ConfirmationModal confirmation={confirmation.confirmation} /> : null}
-        {overlayState.helpOpen ? <HelpOverlay context={helpContext(route.view, overview.activeSection, health.health.workspaceRepair.status, confirmation.confirmation, route.restoreImplemented)} /> : null}
-        {overlayState.paletteOpen ? <CommandPalette query={overlayState.paletteQuery} items={overlayState.visibleCommandItems} selected={overlayState.paletteSelected} /> : null}
+        {toast.current ? <ToastView toast={toast.current} /> : null}
+        {confirmation.current ? <ConfirmationModal confirmation={confirmation.current} /> : null}
+        {overlayState.help.open ? <HelpOverlay context={helpContext(route.location.view, overview.section.active, health.snapshot.workspaceRepair.status, confirmation.current, route.flags.restoreImplemented)} /> : null}
+        {overlayState.palette.open ? <CommandPalette query={overlayState.palette.query} items={overlayState.palette.items} selected={overlayState.palette.selected} /> : null}
       </>
     ),
     [
-      overview.activeSection,
-      confirmation.confirmation,
-      health.health.workspaceRepair.status,
-      overlayState.helpOpen,
-      overlayState.paletteOpen,
-      overlayState.paletteQuery,
-      overlayState.paletteSelected,
-      route.restoreImplemented,
-      toast.toast,
-      route.view,
-      overlayState.visibleCommandItems,
+      overview.section.active,
+      confirmation.current,
+      health.snapshot.workspaceRepair.status,
+      overlayState.help.open,
+      overlayState.palette.open,
+      overlayState.palette.query,
+      overlayState.palette.selected,
+      route.flags.restoreImplemented,
+      toast.current,
+      route.location.view,
+      overlayState.palette.items,
     ],
   )
 

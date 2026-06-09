@@ -2,17 +2,19 @@ import type { BackupFile } from "../../../utils/backups.js"
 import { createRequiredContext } from "./helper.js"
 
 export type BackupsContext = {
-  backups: BackupFile[]
-  selectedBackup: number
-  hoveredBackup: number | null
-  setHoveredBackup: (index: number | null) => void
-  loadingBackups: boolean
-  refreshBackups: () => void
-  moveBackups: (direction: 1 | -1) => void
-  selectBackup: (index: number) => void
-  requestCreateBackupConfirmation: () => void
-  verifySelectedBackup: () => void
-  copySelectedBackupPath: () => void
+  backup: {
+    items: BackupFile[]
+    selected: number
+    select: (index: number) => void
+  }
+  loading: boolean
+  actions: {
+    refresh: () => void
+    move: (direction: 1 | -1) => void
+    create: () => void
+    verifySelected: () => void
+    copySelectedPath: () => void
+  }
 }
 
 const context = createRequiredContext<BackupsContext>("Backups")

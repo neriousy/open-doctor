@@ -18,7 +18,6 @@ export function useBackupsState(options: {
   const [backups, setBackups] = useState<BackupFile[]>([])
   const [selectedBackup, setSelectedBackup] = useState(0)
   const selectedBackupRef = useRef(0)
-  const [hoveredBackup, setHoveredBackup] = useState<number | null>(null)
   const [loadingBackups, setLoadingBackups] = useState(false)
 
   function refreshBackups() {
@@ -121,16 +120,18 @@ export function useBackupsState(options: {
   }
 
   return {
-    backups,
-    selectedBackup,
-    hoveredBackup,
-    setHoveredBackup,
-    loadingBackups,
-    refreshBackups,
-    moveBackups,
-    selectBackup,
-    requestCreateBackupConfirmation,
-    verifySelectedBackup,
-    copySelectedBackupPath,
+    backup: {
+      items: backups,
+      selected: selectedBackup,
+      select: selectBackup,
+    },
+    loading: loadingBackups,
+    actions: {
+      refresh: refreshBackups,
+      move: moveBackups,
+      create: requestCreateBackupConfirmation,
+      verifySelected: verifySelectedBackup,
+      copySelectedPath: copySelectedBackupPath,
+    },
   }
 }

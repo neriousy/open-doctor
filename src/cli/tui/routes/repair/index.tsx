@@ -26,9 +26,9 @@ function handleRepairKey(
   repair: ReturnType<typeof useRepair>,
   backups: ReturnType<typeof useBackups>,
 ) {
-  if (key.name === "escape" || key.name === "left" || key.name === "h") route.goOverview()
-  if (key.name === "d") repair.runDryRepair()
-  if (key.name === "r") repair.requestRepairConfirmation()
-  if (key.name === "s") repair.toggleSql()
-  if (key.name === "b") backups.requestCreateBackupConfirmation()
+  if (key.name === "escape" || key.name === "left" || key.name === "h") route.actions.goOverview()
+  if (key.name === "d") repair.actions.dryRun()
+  if (key.name === "r") repair.actions.requestApply()
+  if (key.name === "s") repair.sql.toggle()
+  if (key.name === "b") backups.actions.create()
 }

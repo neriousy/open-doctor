@@ -1,20 +1,19 @@
 # TUI Guideline
 
 These rules mirror `../opencode/packages/tui/src`, which is the reusable TUI
-package. The old `../opencode/packages/opencode/src/cli/tui` path is mostly an
-adapter from the CLI process into `@opencode-ai/tui`.
+package.
 
 Core rules:
 
 - Keep `app.tsx` to provider composition, runtime state, global keyboard
   priority, and shell routing.
-- Split state by domain under `context/`; do not use one app-wide state object.
-- Route modules consume domain contexts directly. Do not pass route-sized prop
-  bags from `app.tsx` or route indexes into views.
+- Split state by domain under `context/`.
+- Shape complex context APIs as nested objects such as `source`, `entry`,
+  `filter`, `search`, `location`, `status`, and `actions`.
+- Route modules consume domain contexts directly.
 - Keep props for generic UI primitives and small leaf components only.
 - Put route-specific keyboard handling beside the route.
-- Keep Effect at the runtime/domain boundary. Do not put Effect pipelines in
-  render-only route views.
+- Keep Effect at the runtime/domain boundary.
 
 Current target shape:
 

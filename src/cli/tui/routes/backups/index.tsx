@@ -19,11 +19,11 @@ function BackupsScreen() {
 }
 
 function handleBackupsKey(key: KeyInput, route: ReturnType<typeof useRoute>, backups: ReturnType<typeof useBackups>) {
-  if (key.name === "escape" || key.name === "left" || key.name === "h") route.goOverview()
-  if (key.name === "up" || key.name === "k") backups.moveBackups(-1)
-  if (key.name === "down" || key.name === "j") backups.moveBackups(1)
-  if (key.name === "r") backups.refreshBackups()
-  if (key.name === "c") backups.requestCreateBackupConfirmation()
-  if (key.name === "v") backups.verifySelectedBackup()
-  if (key.name === "y") backups.copySelectedBackupPath()
+  if (key.name === "escape" || key.name === "left" || key.name === "h") route.actions.goOverview()
+  if (key.name === "up" || key.name === "k") backups.actions.move(-1)
+  if (key.name === "down" || key.name === "j") backups.actions.move(1)
+  if (key.name === "r") backups.actions.refresh()
+  if (key.name === "c") backups.actions.create()
+  if (key.name === "v") backups.actions.verifySelected()
+  if (key.name === "y") backups.actions.copySelectedPath()
 }

@@ -2,23 +2,31 @@ import type { ArchivedSession } from "../../../utils/sessions.js"
 import { createRequiredContext } from "./helper.js"
 
 export type SessionsContext = {
-  sessions: ArchivedSession[]
-  visibleArchivedSessions: ArchivedSession[]
-  sessionSelected: number
-  selectedSessionIds: Set<string>
-  previewSessionId: string | null
-  loadingSessions: boolean
+  list: {
+    items: ArchivedSession[]
+    visible: ArchivedSession[]
+    selected: number
+  }
+  selection: {
+    ids: Set<string>
+    previewId: string | null
+    toggleCurrent: () => void
+    toggleAllVisible: () => void
+    previewCurrent: () => void
+  }
+  search: {
+    query: string
+    active: boolean
+    start: () => void
+    handleKey: (key: { name?: string; sequence?: string }) => void
+  }
+  loading: boolean
   pendingUnarchive: number
-  archivedSearch: string
-  archivedSearchActive: boolean
-  refreshArchivedSessions: () => void
-  moveArchivedSessions: (direction: 1 | -1) => void
-  startArchivedSearch: () => void
-  handleArchivedSearchKey: (key: { name?: string; sequence?: string }) => void
-  toggleSelectedArchivedSession: () => void
-  toggleSelectAllArchivedSessions: () => void
-  previewArchivedSession: () => void
-  requestUnarchiveSelectedSessions: () => void
+  actions: {
+    refresh: () => void
+    move: (direction: 1 | -1) => void
+    requestUnarchive: () => void
+  }
 }
 
 const context = createRequiredContext<SessionsContext>("Sessions")

@@ -1,4 +1,5 @@
 // Read-only backup browser with manual backup creation and verification actions.
+import { useState } from "react"
 import type { BackupFile } from "../../../../utils/backups.js"
 import { useBackups } from "../../context/backups.js"
 import { useRoute } from "../../context/route.js"
@@ -7,8 +8,9 @@ import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
 export function BackupsView() {
   const backups = useBackups()
   const route = useRoute()
-  const selected = backups.backups[backups.selectedBackup]
-  const rows = visibleRows(backups.backups, backups.selectedBackup, 16)
+  const [hovered, setHovered] = useState<number | null>(null)
+  const selected = backups.backup.items[backups.backup.selected]
+  const rows = visibleRows(backups.backup.items, backups.backup.selected, 16)
 
   return (
     <Box id="backups" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
@@ -17,9 +19,9 @@ export function BackupsView() {
           Backups
         </Text>
         <Text fg="#9fb3c8" height={1}>
-          {backups.loadingBackups ? "Refreshing..." : `${backups.backups.length} backup file(s)`}
+          {backups.loading ? "Refreshing..." : `${backups.backup.items.length} backup file(s)`}
         </Text>
-        {backups.backups.length === 0 ? (
+        {backups.backup.items.length === 0 ? (
           <EmptyState
             title="No backups yet"
             explanation="No toolkit-created database backups were found yet."
@@ -41,22 +43,22 @@ export function BackupsView() {
                 key={item.id}
                 height={1}
                 paddingLeft={1}
-                backgroundColor={rowBackground(index, backups.selectedBackup, backups.hoveredBackup)}
+                backgroundColor={rowBackground(index, backups.backup.selected, hovered)}
                 onMouseOver={(event) => {
                   event.stopPropagation()
-                  backups.setHoveredBackup(index)
+                  setHovered(index)
                 }}
                 onMouseOut={(event) => {
                   event.stopPropagation()
-                  backups.setHoveredBackup(null)
+                  setHovered(null)
                 }}
                 onMouseDown={(event) => {
                   event.stopPropagation()
-                  backups.selectBackup(index)
+                  backups.backup.select(index)
                 }}
               >
-                <Text fg={index === backups.selectedBackup ? "#c3e88d" : "#d6deeb"} height={1}>
-                  {formatRow(item, index === backups.selectedBackup)}
+                <Text fg={index === backups.backup.selected ? "#c3e88d" : "#d6deeb"} height={1}>
+                  {formatRow(item, index === backups.backup.selected)}
                 </Text>
               </Box>
             ))}
@@ -64,7 +66,7 @@ export function BackupsView() {
         )}
       </Box>
 
-      <BackupDetail backup={selected} restoreImplemented={route.restoreImplemented} />
+      <BackupDetail backup={selected} restoreImplemented={route.flags.restoreImplemented} />
     </Box>
   )
 }

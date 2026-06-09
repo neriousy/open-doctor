@@ -1,16 +1,18 @@
 // Read-only diagnostic log file viewer.
+import { useState } from "react"
 import type { LogEntry, LogLevel, LogSource } from "../../../../utils/logs.js"
 import { useLogs } from "../../context/logs.js"
 import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
 
 export function LogsView() {
   const logs = useLogs()
-  const selectedSource = logs.logSources[logs.selectedLogSource]
-  const selectedEntry = logs.visibleLogEntries[logs.selectedLogEntry]
-  const sourceRows = visibleRows(logs.logSources, logs.selectedLogSource, 18)
-  const entryRows = visibleRows(logs.visibleLogEntries, logs.selectedLogEntry, 26)
+  const [hovered, setHovered] = useState<{ source: number | null; entry: number | null }>({ source: null, entry: null })
+  const selectedSource = logs.source.items[logs.source.selected]
+  const selectedEntry = logs.entry.items[logs.entry.selected]
+  const sourceRows = visibleRows(logs.source.items, logs.source.selected, 18)
+  const entryRows = visibleRows(logs.entry.items, logs.entry.selected, 26)
   const selectedEntryId = selectedEntry?.entryId
-  const filterLabel = logs.logFilter === "SEARCH" ? `SEARCH ${logs.logSearchActive ? ">" : ""}${logs.logSearch}` : logs.logFilter
+  const filterLabel = logs.filter.value === "SEARCH" ? `SEARCH ${logs.search.active ? ">" : ""}${logs.search.query}` : logs.filter.value
 
   return (
     <Box id="logs" flexGrow={1} flexDirection="column" marginTop={1}>
@@ -28,16 +30,16 @@ export function LogsView() {
           id="log-sources"
           width={36}
           border
-          borderColor={logs.logsPane === "sources" ? "#81a1c1" : "#35506a"}
+          borderColor={logs.pane.active === "sources" ? "#81a1c1" : "#35506a"}
           padding={1}
         >
           <Text fg="#d6deeb" height={1}>
             Log files
           </Text>
           <Text fg="#9fb3c8" height={1}>
-            {logs.loadingLogs ? "Refreshing..." : `${logs.logSources.length} file(s)`}
+            {logs.loading ? "Refreshing..." : `${logs.source.items.length} file(s)`}
           </Text>
-          {logs.logSources.length === 0 ? (
+          {logs.source.items.length === 0 ? (
             <EmptyState
               title="No log files found"
               explanation="Checked known OpenCode log locations."
@@ -52,22 +54,22 @@ export function LogsView() {
               key={item.id}
               height={2}
               paddingLeft={1}
-              backgroundColor={rowBackground(index, logs.selectedLogSource, logs.hoveredLogSource, logs.logsPane === "sources")}
+              backgroundColor={rowBackground(index, logs.source.selected, hovered.source, logs.pane.active === "sources")}
               onMouseOver={(event) => {
                 event.stopPropagation()
-                logs.setHoveredLogSource(index)
+                setHovered((current) => ({ ...current, source: index }))
               }}
               onMouseOut={(event) => {
                 event.stopPropagation()
-                logs.setHoveredLogSource(null)
+                setHovered((current) => ({ ...current, source: null }))
               }}
               onMouseDown={(event) => {
                 event.stopPropagation()
-                logs.selectLogSource(index)
+                logs.source.select(index)
               }}
             >
-              <Text fg={index === logs.selectedLogSource ? "#c3e88d" : "#d6deeb"} height={1}>
-                {`${index === logs.selectedLogSource && logs.logsPane === "sources" ? ">" : " "} ${truncate(item.label, 23)}   E${item.errorCount} W${item.warningCount}`}
+              <Text fg={index === logs.source.selected ? "#c3e88d" : "#d6deeb"} height={1}>
+                {`${index === logs.source.selected && logs.pane.active === "sources" ? ">" : " "} ${truncate(item.label, 23)}   E${item.errorCount} W${item.warningCount}`}
               </Text>
               <Text fg="#7893ad" height={1}>
                 {`  ${formatSize(item.size)}`}
@@ -80,16 +82,16 @@ export function LogsView() {
           id="log-text"
           flexGrow={1}
           border
-          borderColor={logs.logsPane === "entries" ? "#81a1c1" : "#35506a"}
+          borderColor={logs.pane.active === "entries" ? "#81a1c1" : "#35506a"}
           padding={1}
         >
           <Text fg="#d6deeb" height={1}>
             Entries
           </Text>
           <Text fg="#9fb3c8" height={1}>
-            {selectedSource ? `${logs.visibleLogEntries.length} matching row(s)` : "No source selected"}
+            {selectedSource ? `${logs.entry.items.length} matching row(s)` : "No source selected"}
           </Text>
-          {logs.visibleLogEntries.length === 0 ? (
+          {logs.entry.items.length === 0 ? (
             selectedSource ? (
               <EmptyState
                 title="No matching log lines"
@@ -109,22 +111,22 @@ export function LogsView() {
               key={item.id}
               height={1}
               paddingLeft={1}
-              backgroundColor={logRowBackground(item, selectedEntryId, index, logs.selectedLogEntry, logs.hoveredLogEntry, logs.logsPane === "entries")}
+              backgroundColor={logRowBackground(item, selectedEntryId, index, logs.entry.selected, hovered.entry, logs.pane.active === "entries")}
               onMouseOver={(event) => {
                 event.stopPropagation()
-                logs.setHoveredLogEntry(index)
+                setHovered((current) => ({ ...current, entry: index }))
               }}
               onMouseOut={(event) => {
                 event.stopPropagation()
-                logs.setHoveredLogEntry(null)
+                setHovered((current) => ({ ...current, entry: null }))
               }}
               onMouseDown={(event) => {
                 event.stopPropagation()
-                logs.selectLogEntry(index)
+                logs.entry.select(index)
               }}
             >
-              <Text fg={lineColor(item.inheritedSeverity, item.isContinuation, index === logs.selectedLogEntry)} height={1}>
-                {formatLogRow(item, index === logs.selectedLogEntry && logs.logsPane === "entries")}
+              <Text fg={lineColor(item.inheritedSeverity, item.isContinuation, index === logs.entry.selected)} height={1}>
+                {formatLogRow(item, index === logs.entry.selected && logs.pane.active === "entries")}
               </Text>
             </Box>
           ))}

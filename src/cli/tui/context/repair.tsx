@@ -1,10 +1,14 @@
 import { createRequiredContext } from "./helper.js"
 
 export type RepairContext = {
-  showSql: boolean
-  runDryRepair: () => void
-  requestRepairConfirmation: () => void
-  toggleSql: () => void
+  sql: {
+    visible: boolean
+    toggle: () => void
+  }
+  actions: {
+    dryRun: () => void
+    requestApply: () => void
+  }
 }
 
 const context = createRequiredContext<RepairContext>("Repair")

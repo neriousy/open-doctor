@@ -3,14 +3,18 @@ import type { CommandPaletteAction } from "../routes/overview/actions.js"
 import { createRequiredContext } from "./helper.js"
 
 export type OverlaysContext = {
-  helpOpen: boolean
-  setHelpOpen: Dispatch<SetStateAction<boolean>>
-  paletteOpen: boolean
-  paletteQuery: string
-  visibleCommandItems: CommandPaletteAction[]
-  paletteSelected: number
-  openCommandPalette: () => void
-  handlePaletteKey: (key: { name?: string; sequence?: string }) => void
+  help: {
+    open: boolean
+    setOpen: Dispatch<SetStateAction<boolean>>
+  }
+  palette: {
+    open: boolean
+    query: string
+    items: CommandPaletteAction[]
+    selected: number
+    openPalette: () => void
+    handleKey: (key: { name?: string; sequence?: string }) => void
+  }
 }
 
 const context = createRequiredContext<OverlaysContext>("Overlays")

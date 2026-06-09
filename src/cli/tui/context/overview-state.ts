@@ -14,8 +14,6 @@ export function useOverviewState(options: {
   const activeSectionRef = useRef<SidebarSection>("Overview")
   const [focusedPane, setFocusedPane] = useState<OverviewPane>("actions")
   const focusedPaneRef = useRef<OverviewPane>("actions")
-  const [hoveredSection, setHoveredSection] = useState<SidebarSection | null>(null)
-  const [hoveredAction, setHoveredAction] = useState<number | null>(null)
 
   function focusOverviewPane(pane: OverviewPane) {
     setFocusedPane(pane)
@@ -69,7 +67,6 @@ export function useOverviewState(options: {
   function selectSection(section: SidebarSection) {
     setActiveSection(section)
     focusOverviewPane("sidebar")
-    setHoveredSection(null)
     const indexes = actionIndexesForSection(options.actions, section)
     const next = indexes[0]
     if (next !== undefined) {
@@ -103,20 +100,26 @@ export function useOverviewState(options: {
   }
 
   return {
-    selectedAction,
-    activeSection,
-    focusedPane,
-    hoveredSection,
-    hoveredAction,
-    setHoveredSection,
-    setHoveredAction,
-    focusOverviewPane,
-    moveOverview,
-    openFocusedOverviewAction,
-    inspectHomeAction,
-    selectSection,
-    setActiveSection,
-    activeSectionCurrent,
-    selectFirstAvailableAction,
+    action: {
+      items: options.actions,
+      visibleIndexes: actionIndexesForSection(options.actions, activeSection),
+      selected: selectedAction,
+      inspect: inspectHomeAction,
+      openFocused: openFocusedOverviewAction,
+      selectFirstAvailable: selectFirstAvailableAction,
+    },
+    section: {
+      active: activeSection,
+      select: selectSection,
+      set: setActiveSection,
+      current: activeSectionCurrent,
+    },
+    pane: {
+      focused: focusedPane,
+      focus: focusOverviewPane,
+    },
+    actions: {
+      move: moveOverview,
+    },
   }
 }

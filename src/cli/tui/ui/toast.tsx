@@ -2,8 +2,10 @@ import type { ToastInput, ToastState } from "../types.js"
 import { createRequiredContext } from "../context/helper.js"
 
 export type ToastContext = {
-  toast: ToastState | null
-  showToast: (input: ToastInput) => void
+  current: ToastState | null
+  actions: {
+    show: (input: ToastInput) => void
+  }
 }
 
 const context = createRequiredContext<ToastContext>("Toast")

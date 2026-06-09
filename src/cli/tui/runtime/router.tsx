@@ -19,6 +19,6 @@ export function useScreenRoutes() {
 export function ScreenRouter() {
   const route = useRoute()
   const routes = useScreenRoutes()
-  const screen = routes.find((candidate) => candidate.id === route.view) ?? routes[0]
+  const screen = routes.find((candidate) => candidate.id === route.location.view) ?? routes[0]
   return screen?.render() ?? null
 }

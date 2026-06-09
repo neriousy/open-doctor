@@ -9,11 +9,11 @@ import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
 export function ArchivedSessionsView() {
   const health = useHealth()
   const sessions = useSessions()
-  const rows = visibleRows(sessions.visibleArchivedSessions, sessions.sessionSelected, 13)
-  const highlighted = sessions.visibleArchivedSessions[sessions.sessionSelected]
-  const previewed = sessions.visibleArchivedSessions.find((session) => session.id === sessions.previewSessionId)
+  const rows = visibleRows(sessions.list.visible, sessions.list.selected, 13)
+  const highlighted = sessions.list.visible[sessions.list.selected]
+  const previewed = sessions.list.visible.find((session) => session.id === sessions.selection.previewId)
   const detail = previewed ?? highlighted
-  const noMatches = sessions.sessions.length > 0 && sessions.visibleArchivedSessions.length === 0
+  const noMatches = sessions.list.items.length > 0 && sessions.list.visible.length === 0
 
   return (
     <Box id="archived" flexGrow={1} flexDirection="column" marginTop={1}>
@@ -22,18 +22,18 @@ export function ArchivedSessionsView() {
           Archived sessions
         </Text>
         <Text fg="#7893ad" height={1}>
-          {archivedSummary(sessions.sessions.length, sessions.pendingUnarchive, sessions.loadingSessions)}
-          {sessions.archivedSearch ? ` | search: ${sessions.archivedSearch}` : ""}
+          {archivedSummary(sessions.list.items.length, sessions.pendingUnarchive, sessions.loading)}
+          {sessions.search.query ? ` | search: ${sessions.search.query}` : ""}
         </Text>
       </Box>
 
       <Box id="archived-list" flexGrow={1} marginTop={1} border borderColor="#263544" padding={1}>
-        {sessions.loadingSessions && sessions.sessions.length === 0 ? (
-          <SessionEmptyState title="Loading archived sessions..." databasePath={health.health.dbPath} />
-        ) : sessions.sessions.length === 0 ? (
-          <SessionEmptyState title="No archived sessions found" databasePath={health.health.dbPath} />
+        {sessions.loading && sessions.list.items.length === 0 ? (
+          <SessionEmptyState title="Loading archived sessions..." databasePath={health.snapshot.dbPath} />
+        ) : sessions.list.items.length === 0 ? (
+          <SessionEmptyState title="No archived sessions found" databasePath={health.snapshot.dbPath} />
         ) : noMatches ? (
-          <NoMatchesState query={sessions.archivedSearch} />
+          <NoMatchesState query={sessions.search.query} />
         ) : (
           <Box flexGrow={1} flexDirection="row" columnGap={1}>
             <Box flexGrow={1} flexDirection="column">
@@ -43,23 +43,23 @@ export function ArchivedSessionsView() {
                 </Text>
               </Box>
               {rows.map(({ item, index }) => (
-                <Box key={item.id} height={1} paddingLeft={1} backgroundColor={index === sessions.sessionSelected ? "#17202a" : "#0f1419"}>
-                  <Text fg={index === sessions.sessionSelected ? "#c3e88d" : "#d6deeb"} height={1}>
+                <Box key={item.id} height={1} paddingLeft={1} backgroundColor={index === sessions.list.selected ? "#17202a" : "#0f1419"}>
+                  <Text fg={index === sessions.list.selected ? "#c3e88d" : "#d6deeb"} height={1}>
                     {formatRow(item, {
-                      current: index === sessions.sessionSelected,
-                      checked: sessions.selectedSessionIds.has(item.id),
-                      previewed: item.id === sessions.previewSessionId,
+                      current: index === sessions.list.selected,
+                      checked: sessions.selection.ids.has(item.id),
+                      previewed: item.id === sessions.selection.previewId,
                     })}
                   </Text>
                 </Box>
               ))}
               <Box marginTop={1} flexDirection="column">
-                <Text fg={sessions.archivedSearchActive ? "#ecc48d" : "#7893ad"} height={1}>
-                  {sessions.archivedSearchActive ? `Search: ${sessions.archivedSearch}` : "Enter preview - u unarchive selected - Space select/unselect - a select all - s search - / or p palette - r refresh - Esc back"}
+                <Text fg={sessions.search.active ? "#ecc48d" : "#7893ad"} height={1}>
+                  {sessions.search.active ? `Search: ${sessions.search.query}` : "Enter preview - u unarchive selected - Space select/unselect - a select all - s search - / or p palette - r refresh - Esc back"}
                 </Text>
                 <Text fg="#7893ad" height={1}>
-                  {sessions.selectedSessionIds.size > 0
-                    ? `${sessions.selectedSessionIds.size} checked session${sessions.selectedSessionIds.size === 1 ? "" : "s"}`
+                  {sessions.selection.ids.size > 0
+                    ? `${sessions.selection.ids.size} checked session${sessions.selection.ids.size === 1 ? "" : "s"}`
                     : "No sessions checked; u targets the highlighted row."}
                 </Text>
               </Box>

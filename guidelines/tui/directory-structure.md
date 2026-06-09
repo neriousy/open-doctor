@@ -15,8 +15,8 @@ src/cli/tui/
 
 Folder rules:
 
-- `runtime/` should not know details of sessions, logs, backups, or repair
-  behavior beyond generic route IDs and shell/footer rendering.
+- `runtime/` owns generic route IDs, shell rendering, footer rendering, and
+  keyboard dispatch.
 - `context/` files expose cohesive domain APIs. State hooks can live next to the
   context as `<domain>-state.ts`.
 - `routes/<route>/index.tsx` registers the route, wires route keyboard handling,
@@ -25,8 +25,8 @@ Folder rules:
   route-specific.
 - `component/` is for app-level reusable overlays and widgets like command
   palette and help.
-- `ui/` is for generic, reusable building blocks. These may still accept props.
+- `ui/` is for generic, reusable building blocks. These accept props.
 - `util/` stays pure and importable from tests.
 
-Do not put new sections into `app.tsx` just because they need several domains.
-Create or extend a context, then consume it from the route.
+New sections get an owning context first, then route modules consume that
+context.

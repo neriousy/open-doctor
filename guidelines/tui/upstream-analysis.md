@@ -20,16 +20,10 @@ Observed structure:
 Practices to copy:
 
 - Many small contexts are preferred over a single global store.
+- Complex state is exposed as cohesive nested domain objects with commands
+  grouped under named action objects.
 - Routes call hooks directly instead of receiving assembled app props.
 - Route-only derived state can live in a route-local context.
+- Pointer hover state lives in the component rendering the mouse target.
 - Dialogs and toasts are modeled as UI state providers.
 - Runtime wiring uses Effect, while rendering code remains plain React/OpenTUI.
-
-Practices to avoid:
-
-- No `controller` layer naming. If a hook owns state for a domain, name it for
-  that domain, such as `useLogsState` or `useBackupsState`.
-- No prop chains for screen-level state like selected rows, hover state,
-  active panes, and navigation callbacks.
-- No shared helper abstraction when a small explicit function in the owning
-  module is clearer.

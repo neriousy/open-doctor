@@ -2,11 +2,15 @@ import type { ToolkitHealth } from "../health.js"
 import { createRequiredContext } from "./helper.js"
 
 export type HealthContext = {
-  health: ToolkitHealth
-  status: string
-  loadingHealth: boolean
-  setStatus: (status: string) => void
-  refreshHealth: () => void
+  snapshot: ToolkitHealth
+  status: {
+    message: string
+    set: (status: string) => void
+  }
+  loading: boolean
+  actions: {
+    refresh: () => void
+  }
 }
 
 const context = createRequiredContext<HealthContext>("Health")

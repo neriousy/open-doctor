@@ -6,120 +6,115 @@ import { resolveDbArg } from "../../input.js"
 import type { LogFilter, LogsPane, ToastInput } from "../types.js"
 import { filteredLogEntries, isWorkspaceRepairLog, nextLogFilter, rowMatchesSearch } from "../util/filters.js"
 
+type LogsStore = {
+  sources: LogSource[]
+  entries: LogEntry[]
+  sourceIndex: number
+  entryIndex: number
+  pane: LogsPane
+  loading: boolean
+  filter: LogFilter
+  search: string
+  searchActive: boolean
+}
+
+const initialLogsStore: LogsStore = {
+  sources: [],
+  entries: [],
+  sourceIndex: 0,
+  entryIndex: 0,
+  pane: "entries",
+  loading: false,
+  filter: "ALL",
+  search: "",
+  searchActive: false,
+}
+
 export function useLogsState(options: {
   quit: () => void
   openRepairDetail: () => void
   setStatus: (status: string) => void
   showToast: (input: ToastInput) => void
 }) {
-  const [logSources, setLogSources] = useState<LogSource[]>([])
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([])
-  const [selectedLogSource, setSelectedLogSource] = useState(0)
-  const selectedLogSourceRef = useRef(0)
-  const [selectedLogEntry, setSelectedLogEntry] = useState(0)
-  const selectedLogEntryRef = useRef(0)
-  const [logsPane, setLogsPane] = useState<LogsPane>("entries")
-  const logsPaneRef = useRef<LogsPane>("entries")
-  const [loadingLogs, setLoadingLogs] = useState(false)
-  const [logFilter, setLogFilter] = useState<LogFilter>("ALL")
-  const logFilterRef = useRef<LogFilter>("ALL")
-  const [logSearch, setLogSearch] = useState("")
-  const logSearchRef = useRef("")
-  const [logSearchActive, setLogSearchActive] = useState(false)
-  const [hoveredLogSource, setHoveredLogSource] = useState<number | null>(null)
-  const [hoveredLogEntry, setHoveredLogEntry] = useState<number | null>(null)
-  const visibleLogEntries = filteredLogEntries(logEntries, logFilter, logSearch)
+  const [store, setStoreState] = useState<LogsStore>(initialLogsStore)
+  const storeRef = useRef(store)
+  const visibleEntries = filteredLogEntries(store.entries, store.filter, store.search)
+
+  function setStore(next: LogsStore) {
+    storeRef.current = next
+    setStoreState(next)
+  }
 
   function refreshLogs() {
-    setLoadingLogs(true)
+    setStore({ ...storeRef.current, loading: true })
     options.setStatus("Refreshing log sources...")
     try {
       const sources = discoverLogSources(resolveDbArg())
-      setLogSources(sources)
-      const sourceIndex = Math.max(0, Math.min(selectedLogSourceRef.current, sources.length - 1))
-      selectedLogSourceRef.current = sourceIndex
-      setSelectedLogSource(sourceIndex)
-      loadLogEntries(sources[sourceIndex], logFilterRef.current)
+      const sourceIndex = Math.max(0, Math.min(storeRef.current.sourceIndex, sources.length - 1))
+      const entries = readEntries(sources[sourceIndex])
+      setStore({ ...storeRef.current, sources, sourceIndex, entries, entryIndex: 0, loading: false })
       options.setStatus(sources.length === 0 ? "No log sources found" : `${sources.length} log source(s) found`)
     } catch (error: unknown) {
       const message = formatError(error)
       options.setStatus(message)
       options.showToast({ variant: "error", title: "Logs refresh failed", message })
-    } finally {
-      setLoadingLogs(false)
+      setStore({ ...storeRef.current, loading: false })
     }
   }
 
-  function loadLogEntries(source: LogSource | undefined, filter: LogFilter) {
+  function readEntries(source: LogSource | undefined) {
     if (!source) {
-      setLogEntries([])
-      selectedLogEntryRef.current = 0
-      setSelectedLogEntry(0)
-      return
+      return []
     }
 
     try {
-      const entries = readLogEntries(source)
-      setLogEntries(entries)
-      filteredLogEntries(entries, filter, logSearchRef.current)
-      selectedLogEntryRef.current = 0
-      setSelectedLogEntry(0)
+      return readLogEntries(source)
     } catch (error: unknown) {
       const message = formatError(error)
-      setLogEntries([])
-      selectedLogEntryRef.current = 0
-      setSelectedLogEntry(0)
       options.setStatus(message)
       options.showToast({ variant: "error", title: "Log read failed", message })
+      return []
     }
   }
 
   function focusLogsPane(pane: LogsPane) {
-    setLogsPane(pane)
-    logsPaneRef.current = pane
+    setStore({ ...storeRef.current, pane })
   }
 
   function moveLogs(direction: 1 | -1) {
-    if (logsPaneRef.current === "sources") {
-      const next = Math.max(0, Math.min(logSources.length - 1, selectedLogSourceRef.current + direction))
+    const current = storeRef.current
+    if (current.pane === "sources") {
+      const next = Math.max(0, Math.min(current.sources.length - 1, current.sourceIndex + direction))
       selectLogSource(next)
       return
     }
 
-    const next = Math.max(0, Math.min(visibleLogEntries.length - 1, selectedLogEntryRef.current + direction))
-    selectedLogEntryRef.current = next
-    setSelectedLogEntry(next)
+    const entries = filteredLogEntries(current.entries, current.filter, current.search)
+    const next = Math.max(0, Math.min(entries.length - 1, current.entryIndex + direction))
+    setStore({ ...current, entryIndex: next })
   }
 
   function selectLogSource(index: number) {
-    const source = logSources[index]
+    const current = storeRef.current
+    const source = current.sources[index]
     if (!source) return
-    selectedLogSourceRef.current = index
-    setSelectedLogSource(index)
-    focusLogsPane("sources")
-    loadLogEntries(source, logFilterRef.current)
+    setStore({ ...current, sourceIndex: index, pane: "sources", entries: readEntries(source), entryIndex: 0 })
     options.setStatus(`Selected log source: ${source.label}`)
   }
 
   function selectLogEntry(index: number) {
-    selectedLogEntryRef.current = index
-    setSelectedLogEntry(index)
-    focusLogsPane("entries")
+    setStore({ ...storeRef.current, entryIndex: index, pane: "entries" })
   }
 
   function cycleLogFilter() {
-    const next = nextLogFilter(logFilterRef.current)
-    logFilterRef.current = next
-    setLogFilter(next)
-    selectedLogEntryRef.current = 0
-    setSelectedLogEntry(0)
-    options.setStatus(next === "SEARCH" && logSearchRef.current.length === 0 ? "Log filter: SEARCH. Press s to enter a query" : `Log filter: ${next}`)
+    const current = storeRef.current
+    const next = nextLogFilter(current.filter)
+    setStore({ ...current, filter: next, entryIndex: 0 })
+    options.setStatus(next === "SEARCH" && current.search.length === 0 ? "Log filter: SEARCH. Press s to enter a query" : `Log filter: ${next}`)
   }
 
   function startLogSearch() {
-    logFilterRef.current = "SEARCH"
-    setLogFilter("SEARCH")
-    setLogSearchActive(true)
+    setStore({ ...storeRef.current, filter: "SEARCH", searchActive: true })
     options.setStatus("Search logs: type query, Enter to apply, Esc to cancel")
   }
 
@@ -130,64 +125,55 @@ export function useLogsState(options: {
       return
     }
     if (key.name === "escape" || sequence === "\u001b") {
-      setLogSearchActive(false)
+      setStore({ ...storeRef.current, searchActive: false })
       options.setStatus("Search cancelled")
       return
     }
     if (key.name === "return" || key.name === "enter" || sequence === "\r" || sequence === "\n") {
-      setLogSearchActive(false)
-      selectedLogEntryRef.current = 0
-      setSelectedLogEntry(0)
-      options.setStatus(logSearchRef.current ? `Search logs: ${logSearchRef.current}` : "Search logs: empty query")
+      const current = storeRef.current
+      setStore({ ...current, searchActive: false, entryIndex: 0 })
+      options.setStatus(current.search ? `Search logs: ${current.search}` : "Search logs: empty query")
       return
     }
     if (key.name === "backspace" || key.name === "delete" || sequence === "\u007f") {
-      const next = logSearchRef.current.slice(0, -1)
-      logSearchRef.current = next
-      setLogSearch(next)
-      selectedLogEntryRef.current = 0
-      setSelectedLogEntry(0)
+      const current = storeRef.current
+      setStore({ ...current, search: current.search.slice(0, -1), entryIndex: 0 })
       return
     }
     if (sequence.length === 1 && sequence >= " ") {
-      const next = `${logSearchRef.current}${sequence}`
-      logSearchRef.current = next
-      setLogSearch(next)
-      selectedLogEntryRef.current = 0
-      setSelectedLogEntry(0)
+      const current = storeRef.current
+      setStore({ ...current, search: `${current.search}${sequence}`, entryIndex: 0 })
     }
   }
 
   function moveSearchMatch(direction: 1 | -1) {
-    if (logFilterRef.current !== "SEARCH") {
-      logFilterRef.current = "SEARCH"
-      setLogFilter("SEARCH")
-    }
-    const targetEntries = filteredLogEntries(logEntries, "SEARCH", logSearchRef.current)
-    if (logSearchRef.current.length === 0 || targetEntries.length === 0) {
+    const current = storeRef.current
+    const searchStore = current.filter === "SEARCH" ? current : { ...current, filter: "SEARCH" as const }
+    const targetEntries = filteredLogEntries(searchStore.entries, "SEARCH", searchStore.search)
+    if (searchStore.search.length === 0 || targetEntries.length === 0) {
+      if (searchStore !== current) setStore(searchStore)
       options.setStatus("No search query")
       return
     }
-    const current = selectedLogEntryRef.current
     const matches: number[] = []
     targetEntries.forEach((entry, index) => {
-      if (rowMatchesSearch(entry, logSearchRef.current)) matches.push(index)
+      if (rowMatchesSearch(entry, searchStore.search)) matches.push(index)
     })
     if (matches.length === 0) {
-      options.setStatus(`No matches for ${logSearchRef.current}`)
+      if (searchStore !== current) setStore(searchStore)
+      options.setStatus(`No matches for ${searchStore.search}`)
       return
     }
     const next = direction > 0
-      ? matches.find((index) => index > current) ?? matches[0]
-      : matches.toReversed().find((index) => index < current) ?? matches[matches.length - 1]
+      ? matches.find((index) => index > searchStore.entryIndex) ?? matches[0]
+      : matches.toReversed().find((index) => index < searchStore.entryIndex) ?? matches[matches.length - 1]
     if (next === undefined) return
-    selectedLogEntryRef.current = next
-    setSelectedLogEntry(next)
-    focusLogsPane("entries")
+    setStore({ ...searchStore, entryIndex: next, pane: "entries" })
   }
 
   function openRelatedRepairFromLog() {
-    const entry = visibleLogEntries[selectedLogEntry]
+    const current = storeRef.current
+    const entry = filteredLogEntries(current.entries, current.filter, current.search)[current.entryIndex]
     if (!entry) return
     if (!isWorkspaceRepairLog(entry)) {
       options.setStatus("No related repair is mapped for this log entry")
@@ -197,28 +183,36 @@ export function useLogsState(options: {
   }
 
   return {
-    logSources,
-    visibleLogEntries,
-    selectedLogSource,
-    selectedLogEntry,
-    logsPane,
-    logFilter,
-    logSearch,
-    logSearchActive,
-    loadingLogs,
-    hoveredLogSource,
-    hoveredLogEntry,
-    setHoveredLogSource,
-    setHoveredLogEntry,
-    refreshLogs,
-    focusLogsPane,
-    moveLogs,
-    selectLogSource,
-    selectLogEntry,
-    cycleLogFilter,
-    startLogSearch,
-    handleLogSearchKey,
-    moveSearchMatch,
-    openRelatedRepairFromLog,
+    source: {
+      items: store.sources,
+      selected: store.sourceIndex,
+      select: selectLogSource,
+    },
+    entry: {
+      items: visibleEntries,
+      selected: store.entryIndex,
+      select: selectLogEntry,
+    },
+    pane: {
+      active: store.pane,
+      focus: focusLogsPane,
+    },
+    filter: {
+      value: store.filter,
+      cycle: cycleLogFilter,
+    },
+    search: {
+      query: store.search,
+      active: store.searchActive,
+      start: startLogSearch,
+      handleKey: handleLogSearchKey,
+      moveMatch: moveSearchMatch,
+    },
+    loading: store.loading,
+    actions: {
+      refresh: refreshLogs,
+      move: moveLogs,
+      openRelatedRepair: openRelatedRepairFromLog,
+    },
   }
 }

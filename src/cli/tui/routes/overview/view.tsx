@@ -1,4 +1,5 @@
 // Health-driven section shell with sidebar navigation, page-specific content, and details.
+import { useState } from "react"
 import { useBackups } from "../../context/backups.js"
 import { useHealth } from "../../context/health.js"
 import { useLogs } from "../../context/logs.js"
@@ -14,34 +15,35 @@ import type { OverviewAction, SidebarSection } from "../../types.js"
 export function HomeView() {
   const health = useHealth()
   const overview = useOverview()
-  const action = overview.visibleActionIndexes.includes(overview.selectedAction) ? overview.actions[overview.selectedAction] : undefined
-  const page = sectionPage(overview.activeSection, health.health, health.loadingHealth)
-  const details = detailsSections(overview.activeSection, health.health, action)
-  const sidebarItems = sidebarItemsFromHealth(health.health)
+  const [hoveredSection, setHoveredSection] = useState<SidebarSection | null>(null)
+  const action = overview.action.visibleIndexes.includes(overview.action.selected) ? overview.action.items[overview.action.selected] : undefined
+  const page = sectionPage(overview.section.active, health.snapshot, health.loading)
+  const details = detailsSections(overview.section.active, health.snapshot, action)
+  const sidebarItems = sidebarItemsFromHealth(health.snapshot)
 
   return (
     <Box id="home" flexGrow={1} flexShrink={1} flexDirection="row" marginTop={1} columnGap={1}>
       <Sidebar
         items={sidebarItems}
-        selected={overview.activeSection}
-        focused={overview.focusedPane === "sidebar"}
-        hovered={overview.hoveredSection}
-        onSelect={overview.selectSection}
-        onHover={overview.setHoveredSection}
+        selected={overview.section.active}
+        focused={overview.pane.focused === "sidebar"}
+        hovered={hoveredSection}
+        onSelect={overview.section.select}
+        onHover={setHoveredSection}
       />
 
-      <MainPanel id="overview-main" title={page.title} summary={page.summary} focused={overview.focusedPane === "actions"}>
+      <MainPanel id="overview-main" title={page.title} summary={page.summary} focused={overview.pane.focused === "actions"}>
 
         <Box id="section-content" flexGrow={1} flexDirection="column" marginTop={1}>
-          {overview.activeSection === "Overview" ? (
+          {overview.section.active === "Overview" ? (
             <OverviewContent />
-          ) : overview.activeSection === "Repairs" ? (
+          ) : overview.section.active === "Repairs" ? (
             <RepairsContent />
-          ) : overview.activeSection === "Sessions" ? (
+          ) : overview.section.active === "Sessions" ? (
             <SessionsContent />
-          ) : overview.activeSection === "Logs" ? (
+          ) : overview.section.active === "Logs" ? (
             <LogsContent />
-          ) : overview.activeSection === "Backups" ? (
+          ) : overview.section.active === "Backups" ? (
             <BackupsContent />
           ) : (
             <SettingsContent />
@@ -50,7 +52,7 @@ export function HomeView() {
 
         <Box id="home-status" height={2} marginTop={1}>
           <Text fg="#9fb3c8" wrapMode="word">
-            {health.status}
+            {health.status.message}
           </Text>
         </Box>
       </MainPanel>
@@ -64,12 +66,12 @@ function OverviewContent() {
   const health = useHealth()
   const logs = useLogs()
   const backups = useBackups()
-  const latestLog = logs.logSources[0]
-  const latestBackup = backups.backups[0]
+  const latestLog = logs.source.items[0]
+  const latestBackup = backups.backup.items[0]
 
   return (
     <>
-      {health.health.workspaceRepair.status === "OK" ? (
+      {health.snapshot.workspaceRepair.status === "OK" ? (
         <Text fg="#9fb3c8" height={1}>
           No repairs detected
         </Text>
@@ -80,7 +82,7 @@ function OverviewContent() {
           <Text fg="#d6deeb" height={1}>
             Health checks
           </Text>
-          {health.health.checks.slice(0, 6).map((check) => (
+          {health.snapshot.checks.slice(0, 6).map((check) => (
             <Text key={check.label} fg="#9fb3c8" height={1}>
               {`[${check.status}] ${check.label}: ${truncate(check.detail, 84)}`}
             </Text>
@@ -92,16 +94,16 @@ function OverviewContent() {
             Recent activity
           </Text>
           <Text fg="#9fb3c8" height={1}>
-            {`Latest backup: ${latestBackup ? formatDate(new Date(latestBackup.mtime)) : latestBackupTime(health.health.lastBackup)}`}
+            {`Latest backup: ${latestBackup ? formatDate(new Date(latestBackup.mtime)) : latestBackupTime(health.snapshot.lastBackup)}`}
           </Text>
           <Text fg="#9fb3c8" height={1}>
-            {`Latest log: ${latestLog ? latestLog.label : health.health.latestLog ?? "none"}`}
+            {`Latest log: ${latestLog ? latestLog.label : health.snapshot.latestLog ?? "none"}`}
           </Text>
           <Text fg="#9fb3c8" height={1}>
-            {`Last scan: ${formatDate(new Date(health.health.scannedAt))}`}
+            {`Last scan: ${formatDate(new Date(health.snapshot.scannedAt))}`}
           </Text>
           <Text fg="#7893ad" wrapMode="word">
-            {`Data: ${health.health.dataDir}`}
+            {`Data: ${health.snapshot.dataDir}`}
           </Text>
         </Box>
       </Box>
@@ -111,7 +113,7 @@ function OverviewContent() {
 
 function RepairsContent() {
   const health = useHealth()
-  const repair = repairStatusDisplay(health.health.workspaceRepair)
+  const repair = repairStatusDisplay(health.snapshot.workspaceRepair)
 
   return (
     <>
@@ -131,7 +133,7 @@ function RepairsContent() {
             {repair.actionHint}
           </Text>
           <Text fg="#7893ad" height={1}>
-            {`Planned SQL change(s): ${health.health.workspaceRepair.changes.length}`}
+            {`Planned SQL change(s): ${health.snapshot.workspaceRepair.changes.length}`}
           </Text>
         </Box>
 
@@ -140,7 +142,7 @@ function RepairsContent() {
             Last repair report
           </Text>
           <Text fg="#9fb3c8" wrapMode="word">
-            {health.status}
+            {health.status.message}
           </Text>
           <Text fg="#d6deeb" height={1}>
             Safety note
@@ -157,22 +159,22 @@ function RepairsContent() {
 function SessionsContent() {
   const health = useHealth()
   const sessions = useSessions()
-  if (sessions.loadingSessions && sessions.sessions.length === 0) {
+  if (sessions.loading && sessions.list.items.length === 0) {
     return (
       <EmptyState
         title="Loading archived sessions..."
         explanation="Newest archived sessions are being read from the OpenCode database."
-        checkedPath={health.health.dbPath}
+        checkedPath={health.snapshot.dbPath}
       />
     )
   }
 
-  if (sessions.sessions.length === 0) {
+  if (sessions.list.items.length === 0) {
     return (
       <EmptyState
         title="No archived sessions found"
         explanation="Archived sessions will appear here when OpenCode has sessions marked archived."
-        checkedPath={health.health.dbPath}
+        checkedPath={health.snapshot.dbPath}
         actions={[
           { key: "r", label: "refresh" },
           { key: "l", label: "open logs" },
@@ -187,7 +189,7 @@ function SessionsContent() {
       <Text fg="#d6deeb" height={1}>
         Archived sessions
       </Text>
-      {sessions.sessions.slice(0, 10).map((session) => (
+      {sessions.list.items.slice(0, 10).map((session) => (
         <Box key={session.id} height={3} paddingLeft={1} backgroundColor="#0f1419">
           <Text fg="#d6deeb" height={1}>
             {truncate(session.title || "(untitled)", 80)}
@@ -204,13 +206,13 @@ function SessionsContent() {
 function LogsContent() {
   const health = useHealth()
   const logs = useLogs()
-  if (logs.loadingLogs && logs.logSources.length === 0) return <EmptyState title="Refreshing logs..." explanation="Scanning known OpenCode log locations." />
-  if (logs.logSources.length === 0) {
+  if (logs.loading && logs.source.items.length === 0) return <EmptyState title="Refreshing logs..." explanation="Scanning known OpenCode log locations." />
+  if (logs.source.items.length === 0) {
     return (
       <EmptyState
         title="No log files found"
         explanation="Known OpenCode log locations did not contain readable log files."
-        checkedPath={`${health.health.dataDir}/log`}
+        checkedPath={`${health.snapshot.dataDir}/log`}
         actions={[
           { key: "r", label: "refresh" },
           { key: "Esc", label: "back" },
@@ -225,9 +227,9 @@ function LogsContent() {
         Log sources
       </Text>
       <Text fg="#9fb3c8" height={1}>
-        {`${health.health.logErrorCount} error line(s), ${health.health.logWarningCount} warning line(s) in recent tails`}
+        {`${health.snapshot.logErrorCount} error line(s), ${health.snapshot.logWarningCount} warning line(s) in recent tails`}
       </Text>
-      {logs.logSources.slice(0, 12).map((source) => (
+      {logs.source.items.slice(0, 12).map((source) => (
         <Box key={source.id} height={2} paddingLeft={1} backgroundColor="#0f1419">
           <Text fg="#d6deeb" height={1}>
             {`${source.label} - ${formatSize(source.size)}`}
@@ -243,9 +245,9 @@ function BackupsContent() {
   return (
     <Box flexGrow={1} flexDirection="row" columnGap={1}>
       <Box flexGrow={1} flexDirection="column">
-        {backups.loadingBackups && backups.backups.length === 0 ? (
+        {backups.loading && backups.backup.items.length === 0 ? (
           <EmptyState title="Loading backups..." explanation="Scanning for toolkit-created database backups." />
-        ) : backups.backups.length === 0 ? (
+        ) : backups.backup.items.length === 0 ? (
           <EmptyState
             title="No backups yet"
             explanation="Open the backups tool to create and inspect toolkit database backups."
@@ -259,7 +261,7 @@ function BackupsContent() {
             <Text fg="#d6deeb" height={1}>
               Backup list
             </Text>
-            {backups.backups.slice(0, 10).map((backup) => (
+            {backups.backup.items.slice(0, 10).map((backup) => (
               <Box key={backup.id} height={3} paddingLeft={1} backgroundColor="#0f1419">
                 <Text fg="#d6deeb" height={1}>
                   {formatDate(new Date(backup.mtime))}
@@ -311,8 +313,9 @@ function SettingsContent() {
 
 function ActionList() {
   const overview = useOverview()
-  const actions = overview.visibleActionIndexes.flatMap((index) => {
-    const item = overview.actions[index]
+  const [hoveredAction, setHoveredAction] = useState<number | null>(null)
+  const actions = overview.action.visibleIndexes.flatMap((index) => {
+    const item = overview.action.items[index]
     return item ? [{ index, action: item }] : []
   })
   if (actions.length === 0) return null
@@ -328,11 +331,11 @@ function ActionList() {
           description={item.description}
           actionHint={item.actionHint}
           category={item.category}
-          selected={index === overview.selectedAction}
-          focused={overview.focusedPane === "actions"}
-          hovered={overview.hoveredAction === index}
-          onSelect={() => overview.inspectHomeAction(index)}
-          onHover={(hovered) => overview.setHoveredAction(hovered ? index : null)}
+          selected={index === overview.action.selected}
+          focused={overview.pane.focused === "actions"}
+          hovered={hoveredAction === index}
+          onSelect={() => overview.action.inspect(index)}
+          onHover={(hovered) => setHoveredAction(hovered ? index : null)}
         />
       ))}
     </Box>

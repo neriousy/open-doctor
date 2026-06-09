@@ -7,7 +7,7 @@ import { repairStatusDisplay } from "../../util/repair-status.js"
 export function RepairDetailView() {
   const health = useHealth()
   const repairState = useRepair()
-  const repair = health.health.workspaceRepair
+  const repair = health.snapshot.workspaceRepair
   const display = repairStatusDisplay(repair)
   const changes = repair.changes
 
@@ -20,7 +20,7 @@ export function RepairDetailView() {
         <StatusBadge status={display.status} />
         <StatusHeader status={display.status} description={display.description} error={repair.error} />
         <Text fg="#7893ad" height={1}>
-          {`Database: ${health.health.dbPath}`}
+          {`Database: ${health.snapshot.dbPath}`}
         </Text>
         <Text fg="#7893ad" height={1}>
           {display.status === "DETECTED" || display.status === "EXPERIMENTAL"
@@ -44,14 +44,14 @@ export function RepairDetailView() {
             {
               title: "Status",
               rows: [
-                ["Result", reportText(display.status, health.status, repair.error)],
-                ["Backup", health.health.backupStatus],
+                ["Result", reportText(display.status, health.status.message, repair.error)],
+                ["Backup", health.snapshot.backupStatus],
               ],
             },
             {
               title: "Target",
               rows: [
-                ["Database", health.health.dbPath],
+                ["Database", health.snapshot.dbPath],
                 ["Safety", display.status === "DETECTED" || display.status === "EXPERIMENTAL" ? "backup before apply" : "read-only"],
               ],
             },
@@ -59,7 +59,7 @@ export function RepairDetailView() {
         />
       </Box>
 
-      {repairState.showSql ? (
+      {repairState.sql.visible ? (
         <Box id="repair-sql" height={Math.min(8, Math.max(3, changes.length + 2))} marginTop={1} border borderColor="#263544" padding={1}>
           <Text fg="#d6deeb" height={1}>
             SQL

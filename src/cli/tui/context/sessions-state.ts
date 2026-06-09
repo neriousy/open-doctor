@@ -224,22 +224,30 @@ export function useSessionsState(options: {
   }
 
   return {
-    sessions,
-    visibleArchivedSessions,
-    sessionSelected,
-    selectedSessionIds,
-    previewSessionId,
+    list: {
+      items: sessions,
+      visible: visibleArchivedSessions,
+      selected: sessionSelected,
+    },
+    selection: {
+      ids: selectedSessionIds,
+      previewId: previewSessionId,
+      toggleCurrent: toggleSelectedArchivedSession,
+      toggleAllVisible: toggleSelectAllArchivedSessions,
+      previewCurrent: previewArchivedSession,
+    },
+    search: {
+      query: archivedSearch,
+      active: archivedSearchActive,
+      start: startArchivedSearch,
+      handleKey: handleArchivedSearchKey,
+    },
     loading,
     pendingUnarchive,
-    archivedSearch,
-    archivedSearchActive,
-    refreshArchivedSessions,
-    moveArchivedSessions,
-    startArchivedSearch,
-    handleArchivedSearchKey,
-    toggleSelectedArchivedSession,
-    toggleSelectAllArchivedSessions,
-    previewArchivedSession,
-    requestUnarchiveSelectedSessions,
+    actions: {
+      refresh: refreshArchivedSessions,
+      move: moveArchivedSessions,
+      requestUnarchive: requestUnarchiveSelectedSessions,
+    },
   }
 }

@@ -19,14 +19,14 @@ function ArchivedScreen() {
 }
 
 function handleArchivedKey(key: KeyInput, route: ReturnType<typeof useRoute>, sessions: ReturnType<typeof useSessions>) {
-  if (key.name === "escape" || key.name === "left" || key.name === "h") route.goOverview()
-  if (key.name === "up" || key.name === "k") sessions.moveArchivedSessions(-1)
-  if (key.name === "down" || key.name === "j") sessions.moveArchivedSessions(1)
-  if (key.name === "r") sessions.refreshArchivedSessions()
-  if (key.name === "l") route.openLogs()
-  if (key.name === "s") sessions.startArchivedSearch()
-  if (key.name === "space" || key.sequence === " ") sessions.toggleSelectedArchivedSession()
-  if (key.name === "a") sessions.toggleSelectAllArchivedSessions()
-  if (key.name === "u") sessions.requestUnarchiveSelectedSessions()
-  if (key.name === "return" || key.name === "enter") sessions.previewArchivedSession()
+  if (key.name === "escape" || key.name === "left" || key.name === "h") route.actions.goOverview()
+  if (key.name === "up" || key.name === "k") sessions.actions.move(-1)
+  if (key.name === "down" || key.name === "j") sessions.actions.move(1)
+  if (key.name === "r") sessions.actions.refresh()
+  if (key.name === "l") route.actions.openLogs()
+  if (key.name === "s") sessions.search.start()
+  if (key.name === "space" || key.sequence === " ") sessions.selection.toggleCurrent()
+  if (key.name === "a") sessions.selection.toggleAllVisible()
+  if (key.name === "u") sessions.actions.requestUnarchive()
+  if (key.name === "return" || key.name === "enter") sessions.selection.previewCurrent()
 }

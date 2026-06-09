@@ -11,6 +11,5 @@ The TUI guidelines live in `guidelines/tui/`.
 - `guidelines/tui/effect-runtime.md`: Effect usage boundaries.
 - `guidelines/tui/migration-checklist.md`: checks to run while refactoring.
 
-Use these files for future TUI changes. The old pattern of keeping most app
-state, screen rendering, and screen props in one `app.tsx` should not be
-reintroduced.
+Use these files for future TUI changes. Keep the implementation aligned with
+the provider, route, component, UI, and utility boundaries described there.
