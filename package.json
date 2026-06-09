@@ -1,0 +1,31 @@
+{
+  "name": "opencode-toolkit",
+  "version": "0.1.0",
+  "description": "Support toolkit for repairing and inspecting local OpenCode data",
+  "type": "module",
+  "bin": {
+    "opencode-toolkit": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@opentui/core": "0.3.4",
+    "effect": "4.0.0-beta.74"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.2",
+    "typescript": "5.8.2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "MIT"
+}
