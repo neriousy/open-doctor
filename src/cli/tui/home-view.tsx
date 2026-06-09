@@ -2,13 +2,12 @@
 import type { BackupFile } from "../../utils/backups.js"
 import type { LogSource } from "../../utils/logs.js"
 import type { ArchivedSession } from "../../utils/sessions.js"
-import { DetailsPanel } from "./details-panel.js"
-import type { DetailsSection } from "./details-panel.js"
 import type { ToolkitHealth } from "./health.js"
-import { repairStatusColor, repairStatusDisplay } from "./repair-status.js"
+import { SIDEBAR_ITEMS } from "./navigation.js"
+import { repairStatusDisplay } from "./repair-status.js"
+import { ActionListItem, DetailsPanel, EmptyState, MainPanel, Sidebar } from "./primitives.js"
+import type { DetailsSection, SidebarItem } from "./primitives-model.js"
 import type { OverviewAction, OverviewPane, SidebarSection } from "./types.js"
-
-export const SIDEBAR_ITEMS = ["Overview", "Repairs", "Sessions", "Logs", "Backups", "Settings"] as const
 
 export function HomeView(props: {
   actions: OverviewAction[]
@@ -39,58 +38,20 @@ export function HomeView(props: {
   })
   const page = sectionPage(props.activeSection, props.health, props.loading)
   const details = detailsSections(props.activeSection, props.health, action)
+  const sidebarItems = sidebarItemsFromHealth(props.health)
 
   return (
     <box id="home" flexGrow={1} flexShrink={1} flexDirection="row" marginTop={1} columnGap={1}>
-      <box
-        id="sidebar"
-        width={20}
-        border
-        borderColor={props.focusedPane === "sidebar" ? "#81a1c1" : "#263544"}
-        paddingTop={1}
-        paddingLeft={1}
-        paddingRight={1}
-      >
-        {SIDEBAR_ITEMS.map((item) => (
-          <box
-            key={item}
-            height={2}
-            paddingLeft={1}
-            backgroundColor={sidebarBackground(item, props.activeSection, props.hoveredSection, props.focusedPane)}
-            onMouseOver={(event) => {
-              event.stopPropagation()
-              props.onSectionHover(item)
-            }}
-            onMouseOut={(event) => {
-              event.stopPropagation()
-              props.onSectionHover(null)
-            }}
-            onMouseDown={(event) => {
-              event.stopPropagation()
-              props.onSectionSelect(item)
-            }}
-          >
-            <text fg={sidebarColor(item, props.activeSection, props.hoveredSection, props.focusedPane)} height={1}>
-              {sidebarLabel(item, props.activeSection, props.focusedPane)}
-            </text>
-          </box>
-        ))}
-      </box>
+      <Sidebar
+        items={sidebarItems}
+        selected={props.activeSection}
+        focused={props.focusedPane === "sidebar"}
+        hovered={props.hoveredSection}
+        onSelect={props.onSectionSelect}
+        onHover={props.onSectionHover}
+      />
 
-      <box
-        id="overview-main"
-        flexGrow={1}
-        flexDirection="column"
-        border
-        borderColor={props.focusedPane === "actions" ? "#81a1c1" : "#263544"}
-        padding={1}
-      >
-        <text fg="#d6deeb" height={1}>
-          {page.title}
-        </text>
-        <text fg="#7893ad" height={1}>
-          {page.summary}
-        </text>
+      <MainPanel id="overview-main" title={page.title} summary={page.summary} focused={props.focusedPane === "actions"}>
 
         <box id="section-content" flexGrow={1} flexDirection="column" marginTop={1}>
           {props.activeSection === "Overview" ? (
@@ -132,7 +93,7 @@ export function HomeView(props: {
             {props.status}
           </text>
         </box>
-      </box>
+      </MainPanel>
 
       <DetailsPanel title={details.title} sections={details.sections} />
     </box>
@@ -245,14 +206,26 @@ function RepairsContent(props: ActionContentProps & { health: ToolkitHealth; sta
 
 function SessionsContent(props: { sessions: ArchivedSession[]; loading: boolean; databasePath: string }) {
   if (props.loading && props.sessions.length === 0) {
-    return <EmptyState title="Loading archived sessions..." detail={`Checked: ${props.databasePath}\nNewest archived sessions are being read from the OpenCode database.`} />
+    return (
+      <EmptyState
+        title="Loading archived sessions..."
+        explanation="Newest archived sessions are being read from the OpenCode database."
+        checkedPath={props.databasePath}
+      />
+    )
   }
 
   if (props.sessions.length === 0) {
     return (
       <EmptyState
         title="No archived sessions found"
-        detail={`Checked: ${props.databasePath}\nArchived sessions will appear here when OpenCode has sessions marked archived.\nActions: r refresh, l open logs, esc back`}
+        explanation="Archived sessions will appear here when OpenCode has sessions marked archived."
+        checkedPath={props.databasePath}
+        actions={[
+          { key: "r", label: "refresh" },
+          { key: "l", label: "open logs" },
+          { key: "Esc", label: "back" },
+        ]}
       />
     )
   }
@@ -277,8 +250,20 @@ function SessionsContent(props: { sessions: ArchivedSession[]; loading: boolean;
 }
 
 function LogsContent(props: { sources: LogSource[]; loading: boolean; health: ToolkitHealth }) {
-  if (props.loading && props.sources.length === 0) return <EmptyState title="Refreshing logs..." detail="Scanning known OpenCode log locations." />
-  if (props.sources.length === 0) return <EmptyState title="No log files found" detail={`Checked: ${props.health.dataDir}/log\nKnown OpenCode log locations did not contain readable log files.\nActions: r refresh, esc back`} />
+  if (props.loading && props.sources.length === 0) return <EmptyState title="Refreshing logs..." explanation="Scanning known OpenCode log locations." />
+  if (props.sources.length === 0) {
+    return (
+      <EmptyState
+        title="No log files found"
+        explanation="Known OpenCode log locations did not contain readable log files."
+        checkedPath={`${props.health.dataDir}/log`}
+        actions={[
+          { key: "r", label: "refresh" },
+          { key: "Esc", label: "back" },
+        ]}
+      />
+    )
+  }
 
   return (
     <box flexDirection="column">
@@ -304,9 +289,16 @@ function BackupsContent(props: { backups: BackupFile[]; loading: boolean }) {
     <box flexGrow={1} flexDirection="row" columnGap={1}>
       <box flexGrow={1} flexDirection="column">
         {props.loading && props.backups.length === 0 ? (
-          <EmptyState title="Loading backups..." detail="Scanning for toolkit-created database backups." />
+          <EmptyState title="Loading backups..." explanation="Scanning for toolkit-created database backups." />
         ) : props.backups.length === 0 ? (
-          <EmptyState title="No backups yet" detail="Press Enter to open the backups tool. Press c there to create a manual backup." />
+          <EmptyState
+            title="No backups yet"
+            explanation="Open the backups tool to create and inspect toolkit database backups."
+            actions={[
+              { key: "Enter", label: "open backups" },
+              { key: "c", label: "create manual backup" },
+            ]}
+          />
         ) : (
           <>
             <text fg="#d6deeb" height={1}>
@@ -362,19 +354,6 @@ function SettingsContent() {
   )
 }
 
-function EmptyState(props: { title: string; detail: string }) {
-  return (
-    <box height={5} border borderColor="#263544" paddingLeft={1} paddingRight={1}>
-      <text fg="#82aaff" height={1}>
-        {props.title}
-      </text>
-      <text fg="#9fb3c8" wrapMode="word">
-        {props.detail}
-      </text>
-    </box>
-  )
-}
-
 type ActionContentProps = {
   actions: { index: number; action: OverviewAction }[]
   selected: number
@@ -390,95 +369,40 @@ function ActionList(props: ActionContentProps) {
   return (
     <box id="action-list" flexDirection="column">
       {props.actions.map(({ action: item, index }) => (
-        <box
+        <ActionListItem
           key={item.id}
-          height={5}
-          paddingLeft={1}
-          paddingRight={1}
-          backgroundColor={actionBackground(index, props.selected, props.hoveredAction, props.focusedPane)}
-          border
-          borderColor={
-            index === props.selected && props.focusedPane === "actions"
-              ? "#81a1c1"
-              : props.hoveredAction === index
-                ? "#3b5870"
-                : "#0f1419"
-          }
-          onMouseOver={(event) => {
-            event.stopPropagation()
-            props.onActionHover(index)
-          }}
-          onMouseOut={(event) => {
-            event.stopPropagation()
-            props.onActionHover(null)
-          }}
-          onMouseDown={(event) => {
-            event.stopPropagation()
-            props.onActionSelect(index)
-          }}
-        >
-          <text fg={actionLabelColor(item.status, index === props.selected && props.focusedPane === "actions")} height={1}>
-            {`${index === props.selected && props.focusedPane === "actions" ? ">" : " "} [${item.status}] ${item.title}`}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {item.description}
-          </text>
-          <text fg="#7893ad" height={1}>
-            {`${item.category} - ${item.actionHint}`}
-          </text>
-        </box>
+          id={item.id}
+          status={item.status}
+          title={item.title}
+          description={item.description}
+          actionHint={item.actionHint}
+          category={item.category}
+          selected={index === props.selected}
+          focused={props.focusedPane === "actions"}
+          hovered={props.hoveredAction === index}
+          onSelect={() => props.onActionSelect(index)}
+          onHover={(hovered) => props.onActionHover(hovered ? index : null)}
+        />
       ))}
     </box>
   )
 }
 
-function sidebarLabel(item: SidebarSection, activeSection: SidebarSection, focusedPane: OverviewPane) {
-  return item === activeSection && focusedPane === "sidebar" ? `> ${item}` : `  ${item}`
-}
-
-function sidebarColor(
-  item: SidebarSection,
-  activeSection: SidebarSection,
-  hoveredSection: SidebarSection | null,
-  focusedPane: OverviewPane,
-) {
-  if (item === activeSection && focusedPane === "sidebar") return "#c3e88d"
-  if (item === activeSection) return "#c3e88d"
-  if (item === hoveredSection) return "#d6deeb"
-  return "#b8c7d8"
-}
-
-function sidebarBackground(
-  item: SidebarSection,
-  activeSection: SidebarSection,
-  hoveredSection: SidebarSection | null,
-  focusedPane: OverviewPane,
-) {
-  if (item === activeSection && focusedPane === "sidebar") return "#1b2a35"
-  if (item === activeSection) return "#17202a"
-  if (item === hoveredSection) return "#13202a"
-  return "#0f1419"
-}
-
-function actionBackground(index: number, selected: number, hovered: number | null, focusedPane: OverviewPane) {
-  if (index === selected && focusedPane === "actions") return "#17202a"
-  if (index === selected) return "#121c24"
-  if (index === hovered) return "#13202a"
-  return "#0f1419"
-}
-
-function statusColor(status: string) {
-  const repairColor = repairStatusColor(status)
-  if (repairColor) return repairColor
-  if (status === "OK" || status === "UTILITY" || status === "LOGS" || status === "BACKUP") return "#c3e88d"
-  if (status === "MISSING") return "#f07178"
-  return "#82aaff"
-}
-
-function actionLabelColor(status: string, selected: boolean) {
-  if (!selected) return statusColor(status)
-  if (status === "OK") return statusColor(status)
-  return "#c3e88d"
+function sidebarItemsFromHealth(health: ToolkitHealth): SidebarItem<SidebarSection>[] {
+  return SIDEBAR_ITEMS.map((item) => {
+    const badge =
+      item === "Repairs"
+        ? health.issueCount
+        : item === "Sessions"
+          ? health.archivedCount
+          : item === "Logs"
+            ? health.logErrorCount
+            : item === "Backups"
+              ? health.backupCount
+              : undefined
+    const base = { id: item, label: item }
+    return badge === undefined ? base : { ...base, badge }
+  })
 }
 
 function sectionPage(section: SidebarSection, health: ToolkitHealth, loading: boolean) {

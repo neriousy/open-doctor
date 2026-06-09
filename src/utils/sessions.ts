@@ -1,7 +1,8 @@
 // Session utility flows: archived session listing and unarchive repair.
 import { Effect, Schema } from "effect"
 import type { DbInput } from "../cli/input.js"
-import { backupDatabase, requireColumns, requireTable, withDatabase } from "../db/sqlite.js"
+import { backupDatabase, requireColumns, requireTable, tableColumns, withDatabase } from "../db/sqlite.js"
+import type { SqliteDatabase } from "../db/sqlite.js"
 import { numberField, stringField } from "../db/row.js"
 
 export const ArchivedSession = Schema.Struct({
@@ -10,6 +11,7 @@ export const ArchivedSession = Schema.Struct({
   directory: Schema.String,
   timeUpdated: Schema.Number,
   timeArchived: Schema.Number,
+  messageCount: Schema.optional(Schema.Number),
 })
 export type ArchivedSession = typeof ArchivedSession.Type
 
@@ -24,12 +26,13 @@ export const listArchivedSessions = Effect.fn("Utils.sessions.archived")(functio
     Effect.gen(function* () {
       yield* requireTable(db, "session")
       yield* requireColumns(db, "session", ["id", "title", "directory", "time_updated", "time_archived"])
+      const messageCounts = countMessagesBySession(db)
       return db
         .prepare(
           "SELECT id, title, directory, time_updated, time_archived FROM session WHERE time_archived IS NOT NULL ORDER BY time_archived DESC, id DESC LIMIT 100",
         )
         .all()
-        .map(toArchivedSession)
+        .map((row) => toArchivedSession(row, messageCounts.get(stringField(row, "id"))))
     }),
   )
 })
@@ -64,14 +67,31 @@ export function printSessions(sessions: ArchivedSession[]) {
   )
 }
 
-export function toArchivedSession(row: Record<string, unknown>) {
+export function toArchivedSession(row: Record<string, unknown>, messageCount?: number) {
   return Schema.decodeUnknownSync(ArchivedSession)({
     id: stringField(row, "id"),
     title: stringField(row, "title"),
     directory: stringField(row, "directory"),
     timeUpdated: numberField(row, "time_updated"),
     timeArchived: numberField(row, "time_archived"),
+    messageCount,
   })
+}
+
+function countMessagesBySession(db: SqliteDatabase) {
+  const hasMessageTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'session_message'").get()
+  if (!hasMessageTable) return new Map<string, number>()
+
+  const columns = tableColumns(db, "session_message")
+  const sessionColumn = columns.has("sessionID") ? "sessionID" : columns.has("session_id") ? "session_id" : undefined
+  if (!sessionColumn) return new Map<string, number>()
+
+  return new Map(
+    db
+      .prepare(`SELECT ${sessionColumn}, COUNT(*) AS count FROM session_message GROUP BY ${sessionColumn}`)
+      .all()
+      .map((row) => [stringField(row, sessionColumn), numberField(row, "count")] as const),
+  )
 }
 
 export function formatTime(value: number) {

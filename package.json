@@ -14,7 +14,8 @@
     "build": "tsc -p tsconfig.json && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --external:@opentui/core --outfile=dist/index.js && node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
     "check": "tsc -p tsconfig.json --noEmit",
     "prepare": "npm run build",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/index.js",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@opentui/core": "^0.4.0",
@@ -28,6 +29,7 @@
     "@types/node": "24.12.2",
     "@types/react": "^19.2.17",
     "esbuild": "^0.28.0",
+    "react-doctor": "^0.5.0",
     "typescript": "5.8.2"
   },
   "engines": {

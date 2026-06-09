@@ -1,11 +1,13 @@
-// Read-only backup browser with manual backup creation entry point.
+// Read-only backup browser with manual backup creation and verification actions.
 import type { BackupFile } from "../../utils/backups.js"
+import { DetailsPanel, EmptyState } from "./primitives.js"
 
 export function BackupsView(props: {
   backups: BackupFile[]
   selected: number
   loading: boolean
   hovered: number | null
+  restoreImplemented: boolean
   onSelect: (index: number) => void
   onHover: (index: number | null) => void
 }) {
@@ -22,63 +24,96 @@ export function BackupsView(props: {
           {props.loading ? "Refreshing..." : `${props.backups.length} backup file(s)`}
         </text>
         {props.backups.length === 0 ? (
-          <text fg="#9fb3c8" wrapMode="word">
-            No toolkit-created database backups found yet. Press c to create one.
-          </text>
-        ) : null}
-        {rows.map(({ item, index }) => (
-          <box
-            key={item.id}
-            height={3}
-            paddingLeft={1}
-            backgroundColor={rowBackground(index, props.selected, props.hovered)}
-            onMouseOver={(event) => {
-              event.stopPropagation()
-              props.onHover(index)
-            }}
-            onMouseOut={(event) => {
-              event.stopPropagation()
-              props.onHover(null)
-            }}
-            onMouseDown={(event) => {
-              event.stopPropagation()
-              props.onSelect(index)
-            }}
-          >
-            <text fg={index === props.selected ? "#c3e88d" : "#d6deeb"} height={1}>
-              {`${index === props.selected ? ">" : " "} ${formatDate(item.mtime)}  ${formatSize(item.size)}`}
-            </text>
-            <text fg="#7893ad" height={1}>
-              {item.name}
-            </text>
-          </box>
-        ))}
+          <EmptyState
+            title="No backups yet"
+            explanation="No toolkit-created database backups were found yet."
+            actions={[
+              { key: "c", label: "create backup" },
+              { key: "r", label: "refresh" },
+              { key: "Esc", label: "back" },
+            ]}
+          />
+        ) : (
+          <>
+            <box height={1} paddingLeft={1}>
+              <text fg="#7893ad" height={1}>
+                {"  Created            Size      Source database  Reason"}
+              </text>
+            </box>
+            {rows.map(({ item, index }) => (
+              <box
+                key={item.id}
+                height={1}
+                paddingLeft={1}
+                backgroundColor={rowBackground(index, props.selected, props.hovered)}
+                onMouseOver={(event) => {
+                  event.stopPropagation()
+                  props.onHover(index)
+                }}
+                onMouseOut={(event) => {
+                  event.stopPropagation()
+                  props.onHover(null)
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation()
+                  props.onSelect(index)
+                }}
+              >
+                <text fg={index === props.selected ? "#c3e88d" : "#d6deeb"} height={1}>
+                  {formatRow(item, index === props.selected)}
+                </text>
+              </box>
+            ))}
+          </>
+        )}
       </box>
 
-      <box id="backup-detail" width={52} border borderColor="#35506a" padding={1}>
-        <text fg="#d6deeb" height={1}>
-          Backup detail
-        </text>
-        <text fg="#9fb3c8" height={1}>
-          {selected ? formatDate(selected.mtime) : "No backup selected"}
-        </text>
-        <text fg="#9fb3c8" height={1}>
-          {selected ? `Size: ${formatSize(selected.size)}` : ""}
-        </text>
-        <text fg="#7893ad" wrapMode="word">
-          {selected ? selected.path : "Press c to create a backup of the current OpenCode database."}
-        </text>
-        <text fg="#d6deeb" height={1}>
-          Backup policy
-        </text>
-        <text fg="#9fb3c8" wrapMode="word">
-          Backups are created before repairs and restores.
-        </text>
-        <text fg="#7893ad" wrapMode="word">
-          Restore should require closing OpenCode first.
-        </text>
-      </box>
+      <BackupDetail backup={selected} restoreImplemented={props.restoreImplemented} />
     </box>
+  )
+}
+
+function BackupDetail(props: { backup: BackupFile | undefined; restoreImplemented: boolean }) {
+  const backup = props.backup
+
+  return (
+    <DetailsPanel
+      title="Backup detail"
+      width={56}
+      sections={[
+        {
+          title: "Backup",
+          rows: [
+            ["Created", backup ? formatDate(backup.mtime) : "No backup selected"],
+            ["Size", backup ? formatSize(backup.size) : "-"],
+            ["Source database", backup?.sourceDatabase],
+            ["Backup path", backup?.path ?? "Press c to create a backup of the current OpenCode database."],
+            ["Reason", backup?.reason],
+          ],
+        },
+        {
+          title: "Restore status",
+          rows: props.restoreImplemented
+            ? [
+                ["Restore", "requires confirmation"],
+                ["Safety", "Close OpenCode before restoring."],
+              ]
+            : [
+                ["Restore", "not available yet"],
+                ["Safety", "Manual restore requires closing OpenCode first."],
+              ],
+        },
+        {
+          title: "Actions",
+          rows: [
+            ["c", "create backup"],
+            ["v", "verify backup"],
+            ["y", "copy path"],
+            ["r", "refresh"],
+          ],
+        },
+      ]}
+    />
   )
 }
 
@@ -93,6 +128,14 @@ function rowBackground(index: number, selected: number, hovered: number | null) 
   return "#0f1419"
 }
 
+function formatRow(item: BackupFile, selected: boolean) {
+  const marker = selected ? ">" : " "
+  const created = formatDate(item.mtime).padEnd(16, " ")
+  const size = formatSize(item.size).padEnd(9, " ")
+  const source = truncate(item.sourceDatabase, 15).padEnd(15, " ")
+  return `${marker} ${created}  ${size} ${source} ${item.reason ?? "-"}`
+}
+
 function formatDate(value: number) {
   const date = new Date(value)
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
@@ -102,6 +145,11 @@ function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function truncate(value: string, max: number) {
+  if (value.length <= max) return value
+  return `${value.slice(0, max - 3)}...`
 }
 
 function pad(value: number) {

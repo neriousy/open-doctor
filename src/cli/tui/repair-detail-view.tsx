@@ -1,5 +1,6 @@
 // Safe repair inspection screen: no mutation happens until the user explicitly runs repair.
 import type { ToolkitHealth } from "./health.js"
+import { DetailsPanel, StatusBadge } from "./primitives.js"
 import { repairStatusDisplay } from "./repair-status.js"
 
 export function RepairDetailView(props: {
@@ -17,9 +18,7 @@ export function RepairDetailView(props: {
         <text fg="#d6deeb" height={1}>
           {display.status === "DETECTED" || display.status === "EXPERIMENTAL" ? "Workspace DB schema repair" : "Workspace DB schema"}
         </text>
-        <text fg={display.color} height={1}>
-          {`Status: ${display.status}`}
-        </text>
+        <StatusBadge status={display.status} />
         <StatusHeader status={display.status} description={display.description} error={repair.error} />
         <text fg="#7893ad" height={1}>
           {`Database: ${props.health.dbPath}`}
@@ -39,15 +38,26 @@ export function RepairDetailView(props: {
           <PlannedChanges status={display.status} changes={changes.map((change) => change.label)} />
         </box>
 
-        <box id="repair-report" flexGrow={1} border borderColor="#263544" padding={1}>
-          <text fg="#d6deeb" height={1}>
-            Report
-          </text>
-          <ReportPanel status={display.status} report={props.status} databasePath={props.health.dbPath} error={repair.error} />
-          <text fg="#7893ad" height={1}>
-            {`Backup: ${props.health.backupStatus}`}
-          </text>
-        </box>
+        <DetailsPanel
+          title="Report"
+          width={48}
+          sections={[
+            {
+              title: "Status",
+              rows: [
+                ["Result", reportText(display.status, props.status, repair.error)],
+                ["Backup", props.health.backupStatus],
+              ],
+            },
+            {
+              title: "Target",
+              rows: [
+                ["Database", props.health.dbPath],
+                ["Safety", display.status === "DETECTED" || display.status === "EXPERIMENTAL" ? "backup before apply" : "read-only"],
+              ],
+            },
+          ]}
+        />
       </box>
 
       {props.showSql ? (
@@ -146,43 +156,14 @@ function PlannedChanges(props: { status: string; changes: string[] }) {
   )
 }
 
-function ReportPanel(props: { status: string; report: string; databasePath: string; error: string | undefined }) {
-  if (props.status === "OK") {
-    return (
-      <box flexDirection="column">
-        <text fg="#9fb3c8" height={1}>
-          {props.report}
-        </text>
-        <text fg="#7893ad" wrapMode="word">
-          {`Database: ${props.databasePath}`}
-        </text>
-      </box>
-    )
-  }
-
-  if (props.status === "FAILED") {
-    return (
-      <box flexDirection="column">
-        <text fg="#f07178" wrapMode="word">
-          {props.error ?? props.report}
-        </text>
-        <text fg="#7893ad" wrapMode="word">
-          Open logs or export a report before repairing.
-        </text>
-      </box>
-    )
-  }
-
-  return (
-    <text fg="#9fb3c8" wrapMode="word">
-      {props.report}
-    </text>
-  )
-}
-
 function statusHeaderHeight(status: string) {
   if (status === "DETECTED" || status === "EXPERIMENTAL" || status === "FAILED") return 10
   return 8
+}
+
+function reportText(status: string, report: string, error: string | undefined) {
+  if (status === "FAILED") return error ?? report
+  return report
 }
 
 function detailCopy(status: string) {

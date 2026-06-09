@@ -1,5 +1,6 @@
 // Read-only diagnostic log file viewer.
 import type { LogEntry, LogLevel, LogSource } from "../../utils/logs.js"
+import { DetailsPanel, EmptyState } from "./primitives.js"
 import type { LogFilter, LogsPane } from "./types.js"
 
 export function LogsView(props: {
@@ -52,14 +53,14 @@ export function LogsView(props: {
             {props.loading ? "Refreshing..." : `${props.sources.length} file(s)`}
           </text>
           {props.sources.length === 0 ? (
-            <box flexDirection="column" marginTop={1}>
-              <text fg="#82aaff" height={1}>
-                No log files found
-              </text>
-              <text fg="#9fb3c8" wrapMode="word">
-                Checked known OpenCode log locations. Press r to refresh or esc to return.
-              </text>
-            </box>
+            <EmptyState
+              title="No log files found"
+              explanation="Checked known OpenCode log locations."
+              actions={[
+                { key: "r", label: "refresh" },
+                { key: "Esc", label: "back" },
+              ]}
+            />
           ) : null}
           {sourceRows.map(({ item, index }) => (
             <box
@@ -104,16 +105,19 @@ export function LogsView(props: {
             {selectedSource ? `${props.entries.length} matching row(s)` : "No source selected"}
           </text>
           {props.entries.length === 0 ? (
-            <box flexDirection="column" marginTop={1}>
-              <text fg="#82aaff" height={1}>
-                {selectedSource ? "No matching log lines" : "No log source selected"}
-              </text>
-              <text fg="#9fb3c8" wrapMode="word">
-                {selectedSource
-                  ? `No entries match filter ${filterLabel}. Press f to change filter, / to search, or r to refresh.`
-                  : "Select a log file from the source list."}
-              </text>
-            </box>
+            selectedSource ? (
+              <EmptyState
+                title="No matching log lines"
+                explanation={`No entries match filter ${filterLabel}.`}
+                actions={[
+                  { key: "f", label: "change filter" },
+                  { key: "s", label: "search" },
+                  { key: "r", label: "refresh" },
+                ]}
+              />
+            ) : (
+              <EmptyState title="No log source selected" explanation="Select a log file from the source list." />
+            )
           ) : null}
           {entryRows.map(({ item, index }) => (
             <box
@@ -141,41 +145,40 @@ export function LogsView(props: {
           ))}
         </box>
 
-        <box id="log-detail" width={38} border borderColor="#35506a" padding={1}>
-          <text fg="#d6deeb" height={1}>
-            Detail
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedSource ? selectedSource.label : "No source"}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedSource ? `Size: ${formatSize(selectedSource.size)}  E${selectedSource.errorCount} W${selectedSource.warningCount}` : ""}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedEntry ? `Line: ${selectedEntry.line}  Level: ${selectedEntry.inheritedSeverity}` : "Line: none"}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedEntry ? `Timestamp: ${selectedEntry.timestamp || "unknown"}` : ""}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedEntry ? `Service: ${selectedEntry.service || sourceKind(selectedSource)}` : ""}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedEntry ? `Entry lines: ${selectedEntry.entryStartLine}-${selectedEntry.entryEndLine}` : ""}
-          </text>
-          <text fg="#9fb3c8" height={1}>
-            {selectedEntry?.isContinuation ? `Parent line: ${selectedEntry.headerLine}` : selectedEntry ? `Header line: ${selectedEntry.headerLine}` : ""}
-          </text>
-          <text fg={selectedEntry && relatedRepair(selectedEntry) ? "#c3e88d" : "#5f7690"} wrapMode="word">
-            {selectedEntry && relatedRepair(selectedEntry) ? "Related repair: Workspace DB schema" : "Related repair: none mapped"}
-          </text>
-          <text fg="#7893ad" wrapMode="word">
-            {selectedEntry ? truncate(selectedEntry.parentMessage || selectedEntry.message || selectedEntry.raw, 260) : selectedSource ? truncate(selectedSource.path, 260) : "Select a log file to inspect its raw tail."}
-          </text>
-          <text fg="#5f7690" wrapMode="word">
-            Continuation rows inherit their parent entry severity for filtering and scanning.
-          </text>
-        </box>
+        <DetailsPanel
+          title="Detail"
+          width={38}
+          sections={[
+            {
+              title: "Source",
+              rows: [
+                ["File", selectedSource?.label ?? "No source"],
+                ["Size", selectedSource ? formatSize(selectedSource.size) : undefined],
+                ["Errors", selectedSource?.errorCount],
+                ["Warnings", selectedSource?.warningCount],
+              ],
+            },
+            {
+              title: "Entry",
+              rows: [
+                ["Line", selectedEntry?.line],
+                ["Level", selectedEntry?.inheritedSeverity],
+                ["Timestamp", selectedEntry?.timestamp || "unknown"],
+                ["Service", selectedEntry ? selectedEntry.service || sourceKind(selectedSource) : undefined],
+                ["Range", selectedEntry ? `${selectedEntry.entryStartLine}-${selectedEntry.entryEndLine}` : undefined],
+                ["Header", selectedEntry?.headerLine],
+              ],
+            },
+            {
+              title: "Context",
+              rows: [
+                ["Repair", selectedEntry && relatedRepair(selectedEntry) ? "Workspace DB schema" : "none mapped"],
+                ["Message", selectedEntry ? truncate(selectedEntry.parentMessage || selectedEntry.message || selectedEntry.raw, 260) : selectedSource?.path],
+                ["Note", "Continuation rows inherit parent severity."],
+              ],
+            },
+          ]}
+        />
       </box>
     </box>
   )

@@ -75,7 +75,7 @@ export function discoverLogSources(dbPath = resolveDbArg()) {
     })
   }
 
-  return [...unique.values()].sort((left, right) => right.mtime - left.mtime)
+  return Array.from(unique.values()).toSorted((left, right) => right.mtime - left.mtime)
 }
 
 export function readLogEntries(source: LogSource, options: { maxLines?: number } = {}) {
