@@ -6,7 +6,6 @@ import { commandPaletteItems } from "../routes/overview/actions.js"
 import { useBackups } from "./backups.js"
 import { useHealth } from "./health.js"
 import { createStateContext } from "./helper.js"
-import { useOverview } from "./overview.js"
 import { useRoute } from "./route.js"
 
 export type OverlaysContext = {
@@ -31,16 +30,14 @@ const context = createStateContext<OverlaysContext>({
     const route = useRoute()
     const health = useHealth()
     const backups = useBackups()
-    const overview = useOverview()
     const commandItems = commandPaletteItems(health.snapshot, {
       openRepairDetail: route.actions.openRepairDetail,
       openArchivedSessions: route.actions.openArchivedSessions,
       openLogs: route.actions.openLogs,
       openBackups: route.actions.openBackups,
-      openSettings: () => {
-        route.actions.openSettings()
-        overview.section.select("Settings")
-      },
+      openData: route.actions.openData,
+      openConfig: route.actions.openConfig,
+      openSettings: route.actions.openSettings,
       requestCreateBackupConfirmation: backups.actions.create,
       refreshHealth: health.actions.refresh,
     })

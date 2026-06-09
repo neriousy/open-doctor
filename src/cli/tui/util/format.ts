@@ -1,6 +1,7 @@
 // Formatting helpers for compact terminal tables and transient toast styling.
 import type { ArchivedSession } from "../../../utils/sessions.js"
 import type { ToastVariant } from "../types.js"
+import { TUI } from "../ui/primitives-model.js"
 
 export function renderArchivedSessions(sessions: ArchivedSession[], selected: number, loading: boolean) {
   if (loading && sessions.length === 0) return "Loading archived sessions..."
@@ -33,10 +34,10 @@ export function sessionTitle(session: ArchivedSession) {
 }
 
 export function toastColor(variant: ToastVariant) {
-  if (variant === "success") return "#c3e88d"
-  if (variant === "warning") return "#ecc48d"
-  if (variant === "error") return "#f07178"
-  return "#82aaff"
+  if (variant === "success") return TUI.green
+  if (variant === "warning") return TUI.yellow
+  if (variant === "error") return TUI.red
+  return TUI.blue
 }
 
 function tableTime(value: number) {

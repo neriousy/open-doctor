@@ -50,7 +50,7 @@ const context = createStateContext<OverviewContext>({
     function refreshSectionPreview(section: SidebarSection) {
       if (section === "Sessions") sessions.actions.refresh()
       if (section === "Logs") logs.actions.refresh()
-      if (section === "Backups") backups.actions.refresh()
+      if (section === "Data") backups.actions.refresh()
     }
 
     return useOverviewState({

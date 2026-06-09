@@ -4,6 +4,8 @@ import type { BackupFile } from "../../../../utils/backups.js"
 import { useBackups } from "../../context/backups.js"
 import { useRoute } from "../../context/route.js"
 import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
+import { TUI } from "../../ui/primitives-model.js"
+import { WorkspaceSidebar } from "../../ui/workspace-sidebar.js"
 
 export function BackupsView() {
   const backups = useBackups()
@@ -14,12 +16,13 @@ export function BackupsView() {
 
   return (
     <Box id="backups" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-      <Box id="backup-list" flexGrow={1} border borderColor="#35506a" padding={1}>
-        <Text fg="#d6deeb" height={1}>
-          Backups
+      <WorkspaceSidebar selected="Data" />
+      <Box id="backup-list" flexGrow={1} border borderColor={TUI.border} padding={1} backgroundColor={TUI.panel}>
+        <Text fg={TUI.text} height={1}>
+          Database backups
         </Text>
-        <Text fg="#9fb3c8" height={1}>
-          {backups.loading ? "Refreshing..." : `${backups.backup.items.length} backup file(s)`}
+        <Text fg={TUI.muted} height={1}>
+          Create, verify, and inspect local backup files.
         </Text>
         {backups.backup.items.length === 0 ? (
           <EmptyState
@@ -34,8 +37,8 @@ export function BackupsView() {
         ) : (
           <>
             <Box height={1} paddingLeft={1}>
-              <Text fg="#7893ad" height={1}>
-                {"  Created            Size      Source database  Reason"}
+              <Text fg={TUI.dim} height={1}>
+                {"  Created            Size      Reason"}
               </Text>
             </Box>
             {rows.map(({ item, index }) => (
@@ -57,7 +60,7 @@ export function BackupsView() {
                   backups.backup.select(index)
                 }}
               >
-                <Text fg={index === backups.backup.selected ? "#c3e88d" : "#d6deeb"} height={1}>
+                <Text fg={index === backups.backup.selected ? TUI.blue : TUI.text} height={1}>
                   {formatRow(item, index === backups.backup.selected)}
                 </Text>
               </Box>
@@ -80,34 +83,30 @@ function BackupDetail(props: { backup: BackupFile | undefined; restoreImplemente
       width={56}
       sections={[
         {
-          title: "Backup",
+          title: "Why it matters",
           rows: [
-            ["Created", backup ? formatDate(backup.mtime) : "No backup selected"],
-            ["Size", backup ? formatSize(backup.size) : "-"],
-            ["Source database", backup?.sourceDatabase],
-            ["Backup path", backup?.path ?? "Press c to create a backup of the current OpenCode database."],
-            ["Reason", backup?.reason],
+            ["Summary", backup ? `Backup created ${formatDate(backup.mtime)} (${formatSize(backup.size)})` : "No backup selected"],
+            ["Source", backup?.sourceDatabase],
           ],
         },
         {
-          title: "Restore status",
+          title: "Source/path",
           rows: props.restoreImplemented
             ? [
-                ["Restore", "requires confirmation"],
-                ["Safety", "Close OpenCode before restoring."],
+                ["Path", backup?.path],
+                ["Restore", "Confirmation required"],
               ]
             : [
-                ["Restore", "not available yet"],
-                ["Safety", "Manual restore requires closing OpenCode first."],
+                ["Path", backup?.path ?? "Press c to create a backup of the current OpenCode database."],
+                ["Restore", "Automatic restore is not available yet."],
               ],
         },
         {
-          title: "Actions",
+          title: "Safety",
           rows: [
-            ["c", "create backup"],
-            ["v", "verify backup"],
-            ["y", "copy path"],
-            ["r", "refresh"],
+            ["Create backup", "No existing data is changed."],
+            ["Verify backup", "Read-only."],
+            ["Restore", props.restoreImplemented ? "Changes database. Confirmation required." : "Manual restore only."],
           ],
         },
       ]}
@@ -121,17 +120,16 @@ function visibleRows<T>(items: T[], selected: number, limit: number) {
 }
 
 function rowBackground(index: number, selected: number, hovered: number | null) {
-  if (index === selected) return "#17202a"
-  if (index === hovered) return "#13202a"
-  return "#0f1419"
+  if (index === selected) return TUI.selected
+  if (index === hovered) return TUI.hover
+  return TUI.panel
 }
 
 function formatRow(item: BackupFile, selected: boolean) {
   const marker = selected ? ">" : " "
   const created = formatDate(item.mtime).padEnd(16, " ")
   const size = formatSize(item.size).padEnd(9, " ")
-  const source = truncate(item.sourceDatabase, 15).padEnd(15, " ")
-  return `${marker} ${created}  ${size} ${source} ${item.reason ?? "-"}`
+  return `${marker} ${created}  ${size} ${item.reason ?? "-"}`
 }
 
 function formatDate(value: number) {

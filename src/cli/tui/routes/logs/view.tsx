@@ -2,7 +2,9 @@
 import { useState } from "react"
 import type { LogEntry, LogLevel, LogSource } from "../../../../utils/logs.js"
 import { useLogs } from "../../context/logs.js"
-import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
+import { Box, EmptyState, Text } from "../../ui/primitives.js"
+import { shortenPath, TUI } from "../../ui/primitives-model.js"
+import { WorkspaceSidebar } from "../../ui/workspace-sidebar.js"
 
 export function LogsView() {
   const logs = useLogs()
@@ -10,163 +12,159 @@ export function LogsView() {
   const selectedSource = logs.source.items[logs.source.selected]
   const selectedEntry = logs.entry.items[logs.entry.selected]
   const sourceRows = visibleRows(logs.source.items, logs.source.selected, 18)
-  const entryRows = visibleRows(logs.entry.items, logs.entry.selected, 26)
+  const entryRows = visibleRows(logs.entry.items, logs.entry.selected, 24)
   const selectedEntryId = selectedEntry?.entryId
-  const filterLabel = logs.filter.value === "SEARCH" ? `SEARCH ${logs.search.active ? ">" : ""}${logs.search.query}` : logs.filter.value
+  const filterLabel = logs.filter.value === "SEARCH" ? `Search ${logs.search.active ? ">" : ""}${logs.search.query}` : logs.filter.value.toLowerCase()
 
   return (
-    <Box id="logs" flexGrow={1} flexDirection="column" marginTop={1}>
-      <Box id="log-header" height={3} border borderColor="#263544" paddingLeft={1} paddingRight={1}>
-        <Text fg="#d6deeb" height={1}>
-          {selectedSource ? `${selectedSource.label} | Filter: ${filterLabel} | Line: ${selectedEntry ? selectedEntry.line : "none"}` : `No log file selected | Filter: ${filterLabel}`}
+    <Box id="logs" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
+      <WorkspaceSidebar selected="Logs" />
+
+      <Box flexGrow={1} flexDirection="column">
+        <Text fg={TUI.text} height={1}>
+          Logs
         </Text>
-        <Text fg="#9fb3c8" height={1}>
-          {selectedSource ? truncate(selectedSource.path, 150) : "No OpenCode log files found in known locations."}
+        <Text fg={TUI.muted} height={1}>
+          Review issues and inspect context.
+        </Text>
+
+        <Box id="log-columns" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
+          <Box
+            id="log-sources"
+            width={30}
+            border
+            borderColor={logs.pane.active === "sources" ? TUI.borderActive : TUI.border}
+            padding={1}
+            backgroundColor={TUI.panel}
+          >
+            <Text fg={TUI.text} height={1}>
+              Log sources
+            </Text>
+            <Text fg={TUI.dim} height={1}>
+              {logs.loading ? "Refreshing..." : "Select a source"}
+            </Text>
+            {logs.source.items.length === 0 ? (
+              <EmptyState title="No log files found" explanation="Checked known OpenCode log locations." />
+            ) : null}
+            {sourceRows.map(({ item, index }) => (
+              <Box
+                key={item.id}
+                height={2}
+                paddingLeft={1}
+                backgroundColor={rowBackground(index, logs.source.selected, hovered.source, logs.pane.active === "sources")}
+                onMouseOver={(event) => {
+                  event.stopPropagation()
+                  setHovered((current) => ({ ...current, source: index }))
+                }}
+                onMouseOut={(event) => {
+                  event.stopPropagation()
+                  setHovered((current) => ({ ...current, source: null }))
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation()
+                  logs.source.select(index)
+                }}
+              >
+                <Text fg={index === logs.source.selected ? TUI.blue : TUI.text} height={1}>
+                  {`${index === logs.source.selected && logs.pane.active === "sources" ? ">" : index === logs.source.selected ? "|" : " "} ${truncate(item.label, 22)}`}
+                </Text>
+                <Text fg={TUI.dim} height={1}>
+                  {sourceSummary(item)}
+                </Text>
+              </Box>
+            ))}
+          </Box>
+
+          <Box
+            id="log-entries"
+            flexGrow={1}
+            border
+            borderColor={logs.pane.active === "entries" ? TUI.borderActive : TUI.border}
+            padding={1}
+            backgroundColor={TUI.panel}
+          >
+            <Box height={1} flexDirection="row" justifyContent="space-between">
+              <Text fg={TUI.text}>Entries</Text>
+              <Text fg={TUI.dim}>{`Filter: ${filterLabel}`}</Text>
+            </Box>
+            {logs.entry.items.length === 0 ? (
+              selectedSource ? (
+                <EmptyState title="No matching log lines" explanation={`No entries match filter ${filterLabel}.`} />
+              ) : (
+                <EmptyState title="No log source selected" explanation="Select a log file from the source list." />
+              )
+            ) : null}
+            {entryRows.map(({ item, index }) => (
+              <Box
+                key={item.id}
+                height={1}
+                paddingLeft={1}
+                backgroundColor={logRowBackground(item, selectedEntryId, index, logs.entry.selected, hovered.entry, logs.pane.active === "entries")}
+                onMouseOver={(event) => {
+                  event.stopPropagation()
+                  setHovered((current) => ({ ...current, entry: index }))
+                }}
+                onMouseOut={(event) => {
+                  event.stopPropagation()
+                  setHovered((current) => ({ ...current, entry: null }))
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation()
+                  logs.entry.select(index)
+                }}
+              >
+                <Text fg={lineColor(item.inheritedSeverity, item.isContinuation, index === logs.entry.selected)} height={1}>
+                  {formatLogRow(item, index === logs.entry.selected && logs.pane.active === "entries", selectedSource)}
+                </Text>
+              </Box>
+            ))}
+          </Box>
+
+          <LogDetail source={selectedSource} entry={selectedEntry} />
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
+function LogDetail(props: { source: LogSource | undefined; entry: LogEntry | undefined }) {
+  const entry = props.entry
+  const title = entry ? truncate(entry.parentMessage || entry.message || entry.raw, 64) : props.source?.label ?? "No log selected"
+
+  return (
+    <Box width={40} border borderColor={TUI.border} padding={1} flexDirection="column" backgroundColor={TUI.panel}>
+      <Text fg={TUI.dim} height={1}>
+        Log
+      </Text>
+      <Text fg={TUI.text} wrapMode="word">
+        {title}
+      </Text>
+      <DetailBlock label="Status" text={entry?.inheritedSeverity ?? "No entry selected"} color={entry ? lineColor(entry.inheritedSeverity, false, false) : TUI.dim} />
+      <DetailBlock label="Why it matters" text={entry ? impactText(entry) : "Select a log entry to inspect the message and source."} />
+      <DetailBlock label="Source" text={props.source ? shortenPath(props.source.path, 38) : "No source"} />
+      <DetailBlock label="Suggested next step" text={entry && relatedRepair(entry) ? "Open the related database repair from Data." : "Open the source file or copy details for manual inspection."} />
+      <DetailBlock label="Safety" text="Reviewing logs is read-only. No files will be modified." color={TUI.green} />
+      <Box marginTop={1} flexDirection="column">
+        <Text fg={TUI.blue} height={1}>
+          Open source file
+        </Text>
+        <Text fg={TUI.muted} height={1}>
+          Raw details collapsed
         </Text>
       </Box>
+    </Box>
+  )
+}
 
-      <Box id="log-columns" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
-        <Box
-          id="log-sources"
-          width={36}
-          border
-          borderColor={logs.pane.active === "sources" ? "#81a1c1" : "#35506a"}
-          padding={1}
-        >
-          <Text fg="#d6deeb" height={1}>
-            Log files
-          </Text>
-          <Text fg="#9fb3c8" height={1}>
-            {logs.loading ? "Refreshing..." : `${logs.source.items.length} file(s)`}
-          </Text>
-          {logs.source.items.length === 0 ? (
-            <EmptyState
-              title="No log files found"
-              explanation="Checked known OpenCode log locations."
-              actions={[
-                { key: "r", label: "refresh" },
-                { key: "Esc", label: "back" },
-              ]}
-            />
-          ) : null}
-          {sourceRows.map(({ item, index }) => (
-            <Box
-              key={item.id}
-              height={2}
-              paddingLeft={1}
-              backgroundColor={rowBackground(index, logs.source.selected, hovered.source, logs.pane.active === "sources")}
-              onMouseOver={(event) => {
-                event.stopPropagation()
-                setHovered((current) => ({ ...current, source: index }))
-              }}
-              onMouseOut={(event) => {
-                event.stopPropagation()
-                setHovered((current) => ({ ...current, source: null }))
-              }}
-              onMouseDown={(event) => {
-                event.stopPropagation()
-                logs.source.select(index)
-              }}
-            >
-              <Text fg={index === logs.source.selected ? "#c3e88d" : "#d6deeb"} height={1}>
-                {`${index === logs.source.selected && logs.pane.active === "sources" ? ">" : " "} ${truncate(item.label, 23)}   E${item.errorCount} W${item.warningCount}`}
-              </Text>
-              <Text fg="#7893ad" height={1}>
-                {`  ${formatSize(item.size)}`}
-              </Text>
-            </Box>
-          ))}
-        </Box>
-
-        <Box
-          id="log-text"
-          flexGrow={1}
-          border
-          borderColor={logs.pane.active === "entries" ? "#81a1c1" : "#35506a"}
-          padding={1}
-        >
-          <Text fg="#d6deeb" height={1}>
-            Entries
-          </Text>
-          <Text fg="#9fb3c8" height={1}>
-            {selectedSource ? `${logs.entry.items.length} matching row(s)` : "No source selected"}
-          </Text>
-          {logs.entry.items.length === 0 ? (
-            selectedSource ? (
-              <EmptyState
-                title="No matching log lines"
-                explanation={`No entries match filter ${filterLabel}.`}
-                actions={[
-                  { key: "f", label: "change filter" },
-                  { key: "s", label: "search" },
-                  { key: "r", label: "refresh" },
-                ]}
-              />
-            ) : (
-              <EmptyState title="No log source selected" explanation="Select a log file from the source list." />
-            )
-          ) : null}
-          {entryRows.map(({ item, index }) => (
-            <Box
-              key={item.id}
-              height={1}
-              paddingLeft={1}
-              backgroundColor={logRowBackground(item, selectedEntryId, index, logs.entry.selected, hovered.entry, logs.pane.active === "entries")}
-              onMouseOver={(event) => {
-                event.stopPropagation()
-                setHovered((current) => ({ ...current, entry: index }))
-              }}
-              onMouseOut={(event) => {
-                event.stopPropagation()
-                setHovered((current) => ({ ...current, entry: null }))
-              }}
-              onMouseDown={(event) => {
-                event.stopPropagation()
-                logs.entry.select(index)
-              }}
-            >
-              <Text fg={lineColor(item.inheritedSeverity, item.isContinuation, index === logs.entry.selected)} height={1}>
-                {formatLogRow(item, index === logs.entry.selected && logs.pane.active === "entries")}
-              </Text>
-            </Box>
-          ))}
-        </Box>
-
-        <DetailsPanel
-          title="Detail"
-          width={38}
-          sections={[
-            {
-              title: "Source",
-              rows: [
-                ["File", selectedSource?.label ?? "No source"],
-                ["Size", selectedSource ? formatSize(selectedSource.size) : undefined],
-                ["Errors", selectedSource?.errorCount],
-                ["Warnings", selectedSource?.warningCount],
-              ],
-            },
-            {
-              title: "Entry",
-              rows: [
-                ["Line", selectedEntry?.line],
-                ["Level", selectedEntry?.inheritedSeverity],
-                ["Timestamp", selectedEntry?.timestamp || "unknown"],
-                ["Service", selectedEntry ? selectedEntry.service || sourceKind(selectedSource) : undefined],
-                ["Range", selectedEntry ? `${selectedEntry.entryStartLine}-${selectedEntry.entryEndLine}` : undefined],
-                ["Header", selectedEntry?.headerLine],
-              ],
-            },
-            {
-              title: "Context",
-              rows: [
-                ["Repair", selectedEntry && relatedRepair(selectedEntry) ? "Workspace DB schema" : "none mapped"],
-                ["Message", selectedEntry ? truncate(selectedEntry.parentMessage || selectedEntry.message || selectedEntry.raw, 260) : selectedSource?.path],
-                ["Note", "Continuation rows inherit parent severity."],
-              ],
-            },
-          ]}
-        />
-      </Box>
+function DetailBlock(props: { label: string; text: string; color?: string }) {
+  return (
+    <Box flexDirection="column" marginTop={1}>
+      <Text fg={TUI.dim} height={1}>
+        {props.label}
+      </Text>
+      <Text fg={props.color ?? TUI.muted} wrapMode="word">
+        {props.text}
+      </Text>
     </Box>
   )
 }
@@ -177,46 +175,57 @@ function visibleRows<T>(items: T[], selected: number, limit: number) {
 }
 
 function rowBackground(index: number, selected: number, hovered: number | null, focused: boolean) {
-  if (index === selected && focused) return "#17202a"
-  if (index === selected) return "#121c24"
-  if (index === hovered) return "#13202a"
-  return "#0f1419"
+  if (index === selected && focused) return TUI.selected
+  if (index === selected) return TUI.selectedMuted
+  if (index === hovered) return TUI.hover
+  return TUI.panel
 }
 
 function logRowBackground(item: LogEntry, selectedEntryId: string | undefined, index: number, selected: number, hovered: number | null, focused: boolean) {
-  if (index === selected && focused) return "#17202a"
-  if (index === selected) return "#121c24"
-  if (item.entryId === selectedEntryId) return "#101a22"
-  if (index === hovered) return "#13202a"
-  return "#0f1419"
+  if (index === selected && focused) return TUI.selected
+  if (index === selected) return TUI.selectedMuted
+  if (item.entryId === selectedEntryId) return TUI.elevated
+  if (index === hovered) return TUI.hover
+  return TUI.panel
 }
 
-function formatLogRow(entry: LogEntry, selected: boolean) {
+function formatLogRow(entry: LogEntry, selected: boolean, source: LogSource | undefined) {
   const marker = selected ? ">" : " "
-  const line = String(entry.line).padStart(5, " ")
-  if (entry.isContinuation) return `${marker} ${line} │ ${truncate(entry.text, 124)}`
+  if (entry.isContinuation) return `${marker} ${truncate(entry.text, 124)}`
 
   const timestamp = entry.timestamp ? compactTimestamp(entry.timestamp) : "time?"
-  return `${marker} ${line} ${entry.inheritedSeverity.padEnd(5, " ")} ${timestamp} ${truncate(entry.message, 104)}`
+  return `${marker} ${timestamp} · ${entry.inheritedSeverity.padEnd(5, " ")} · ${sourceKind(source).padEnd(12, " ")} · ${truncate(entry.message, 88)}`
 }
 
 function lineColor(level: LogLevel, continuation: boolean, selected: boolean) {
-  if (selected) return "#c3e88d"
-  if (level === "ERROR") return continuation ? "#b4555f" : "#f07178"
-  if (level === "WARN") return continuation ? "#b78f5b" : "#ecc48d"
-  if (level === "INFO") return continuation ? "#7893ad" : "#82aaff"
-  return "#9fb3c8"
+  if (selected) return TUI.blue
+  if (level === "ERROR") return continuation ? TUI.muted : TUI.red
+  if (level === "WARN") return continuation ? TUI.muted : TUI.yellow
+  if (level === "INFO") return continuation ? TUI.dim : TUI.muted
+  return TUI.muted
+}
+
+function sourceSummary(source: LogSource) {
+  if (source.errorCount > 0) return `${source.errorCount} error${source.errorCount === 1 ? "" : "s"}`
+  if (source.warningCount > 0) return `${source.warningCount} warning${source.warningCount === 1 ? "" : "s"}`
+  return formatSize(source.size)
+}
+
+function impactText(entry: LogEntry) {
+  if (entry.inheritedSeverity === "ERROR") return "This may explain a failed command, provider call, or local startup path."
+  if (entry.inheritedSeverity === "WARN") return "This is worth reviewing when behavior looks degraded."
+  return "This entry provides context for normal OpenCode activity."
 }
 
 function compactTimestamp(value: string) {
   const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/)
-  if (match) return `${match[1]} ${match[2]}`
+  if (match) return match[2]
   return value
 }
 
 function sourceKind(source: LogSource | undefined) {
-  if (!source) return "unknown"
-  return source.label.split(" ")[0] ?? "Log"
+  if (!source) return "log"
+  return source.label.split(" ")[0] ?? "log"
 }
 
 function relatedRepair(entry: LogEntry) {

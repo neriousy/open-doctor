@@ -17,21 +17,23 @@ export type EmptyStateAction = {
 }
 
 export const TUI = {
-  bg: "#0f1419",
-  panel: "#101820",
-  border: "#263544",
-  borderActive: "#81a1c1",
-  borderAlt: "#35506a",
-  hover: "#13202a",
-  selected: "#17202a",
-  selectedMuted: "#121c24",
-  text: "#d6deeb",
-  muted: "#9fb3c8",
-  dim: "#7893ad",
-  blue: "#82aaff",
-  green: "#c3e88d",
-  yellow: "#ecc48d",
-  red: "#f07178",
+  bg: "#080808",
+  panel: "#111113",
+  elevated: "#18181B",
+  border: "#27272A",
+  borderActive: "#3B82F6",
+  borderAlt: "#27272A",
+  hover: "#202124",
+  selected: "#18181B",
+  selectedMuted: "#111113",
+  text: "#EDEDED",
+  muted: "#A1A1AA",
+  dim: "#6F6F76",
+  disabled: "#4B4B52",
+  blue: "#3B82F6",
+  green: "#67C96F",
+  yellow: "#F5B84B",
+  red: "#F87171",
 }
 
 export function shortenPath(value: string, width = 28) {
@@ -55,8 +57,8 @@ export function shortenPath(value: string, width = 28) {
 }
 
 export function statusColor(status: StatusKind) {
-  if (status === "OK" || status === "LOGS" || status === "BACKUP" || status === "UTILITY") return TUI.green
-  if (status === "DETECTED" || status === "WARN" || status === "EXPERIMENTAL") return TUI.yellow
+  if (status === "OK" || status === "BACKUP" || status === "UTILITY") return TUI.green
+  if (status === "DETECTED" || status === "WARN" || status === "EXPERIMENTAL" || status === "MISSING") return TUI.yellow
   if (status === "FAILED") return TUI.red
   return TUI.blue
 }

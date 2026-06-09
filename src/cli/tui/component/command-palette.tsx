@@ -1,5 +1,6 @@
 // Searchable action launcher for common Open Doctor tools.
 import { Box, Text } from "../ui/primitives.js"
+import { TUI } from "../ui/primitives-model.js"
 
 export type CommandPaletteItem = {
   id: string
@@ -22,36 +23,36 @@ export function CommandPalette(props: {
       left="15%"
       width="70%"
       border
-      borderColor="#c3e88d"
+      borderColor={TUI.borderActive}
       padding={1}
-      backgroundColor="#101820"
+      backgroundColor={TUI.panel}
       flexDirection="column"
     >
-      <Text fg="#c3e88d" height={1}>
+      <Text fg={TUI.blue} height={1}>
         Command palette
       </Text>
-      <Text fg="#9fb3c8" height={1}>
+      <Text fg={TUI.muted} height={1}>
         {`> ${props.query}`}
       </Text>
       <Box marginTop={1} flexDirection="column">
         {props.items.length === 0 ? (
-          <Text fg="#7893ad" height={1}>
+          <Text fg={TUI.dim} height={1}>
             No matching tools or actions
           </Text>
         ) : (
           props.items.slice(0, 9).map((item, index) => (
-            <Box key={item.id} height={2} paddingLeft={1} backgroundColor={index === props.selected ? "#17202a" : "#101820"}>
-              <Text fg={index === props.selected ? "#c3e88d" : "#d6deeb"} height={1}>
+            <Box key={item.id} height={2} paddingLeft={1} backgroundColor={index === props.selected ? TUI.selected : TUI.panel}>
+              <Text fg={index === props.selected ? TUI.blue : TUI.text} height={1}>
                 {formatResult(item, index === props.selected)}
               </Text>
-              <Text fg="#7893ad" height={1}>
+              <Text fg={TUI.dim} height={1}>
                 {item.actionHint}
               </Text>
             </Box>
           ))
         )}
       </Box>
-      <Text fg="#7893ad" height={1}>
+      <Text fg={TUI.dim} height={1}>
         Type to filter - Enter open - Esc close
       </Text>
     </Box>

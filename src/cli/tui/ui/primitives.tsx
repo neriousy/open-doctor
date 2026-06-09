@@ -39,18 +39,14 @@ export function AppShell(props: {
 export function HeaderStatus(props: {
   title: string
   dataPath: string
-  repairCount: number
-  archivedCount: number
-  logErrorCount: number
-  backupStatus: string
 }) {
   return (
-    <Box id="header" height={5} border borderColor={TUI.border} paddingLeft={2} paddingRight={2} paddingTop={1}>
+    <Box id="header" height={4} paddingLeft={1} paddingRight={1} paddingTop={1}>
       <Text id="title" fg={TUI.text} height={1}>
         {props.title}
       </Text>
       <Text id="subtitle" fg={TUI.dim} height={1}>
-        {`${shortenPath(props.dataPath, 72)} | Repairs: ${props.repairCount} | Archived: ${props.archivedCount} | Log errors: ${props.logErrorCount} | Backup: ${props.backupStatus}`}
+        {shortenPath(props.dataPath, 96)}
       </Text>
     </Box>
   )
@@ -83,9 +79,12 @@ export function MainPanel(props: { id?: string; title?: string; summary?: string
 
 export function Footer(props: { text: string }) {
   return (
-    <Box id="footer" height={2} marginTop={1} paddingLeft={1}>
+    <Box id="footer" height={2} marginTop={1} paddingLeft={1} flexDirection="row" justifyContent="space-between">
       <Text id="controls" fg={TUI.dim}>
         {props.text}
+      </Text>
+      <Text id="safety" fg={TUI.green}>
+        Read-only
       </Text>
     </Box>
   )
@@ -117,7 +116,7 @@ export function Sidebar<T extends string>(props: {
             key={item.id}
             height={2}
             paddingLeft={1}
-            backgroundColor={focusedSelected ? "#1b2a35" : selected ? TUI.selected : item.id === props.hovered ? TUI.hover : TUI.bg}
+            backgroundColor={selected ? TUI.selected : item.id === props.hovered ? TUI.hover : TUI.bg}
             onMouseOver={(event) => {
               event.stopPropagation()
               props.onHover(item.id)
@@ -131,8 +130,8 @@ export function Sidebar<T extends string>(props: {
               props.onSelect(item.id)
             }}
           >
-            <Text fg={selected ? TUI.green : item.id === props.hovered ? TUI.text : "#b8c7d8"} height={1}>
-              {`${focusedSelected ? ">" : " "} ${item.label}${item.badge === undefined ? "" : ` ${item.badge}`}`}
+            <Text fg={selected ? TUI.blue : item.id === props.hovered ? TUI.text : TUI.muted} height={1}>
+              {`${focusedSelected ? ">" : selected ? "|" : " "} ${item.label}${item.badge === undefined ? "" : ` ${item.badge}`}`}
             </Text>
           </Box>
         )
@@ -143,7 +142,7 @@ export function Sidebar<T extends string>(props: {
 
 export function StatusBadge(props: { status: StatusKind; selected?: boolean }) {
   return (
-    <Text fg={props.selected ? TUI.green : statusColor(props.status)} height={1}>
+    <Text fg={statusColor(props.status)} height={1}>
       {`[${props.status}]`}
     </Text>
   )
@@ -184,8 +183,8 @@ export function ActionListItem(props: {
         props.onSelect()
       }}
     >
-      <Text fg={props.selected && props.focused ? TUI.green : statusColor(props.status)} height={1}>
-        {`${props.selected && props.focused ? ">" : " "} [${props.status}] ${props.title}`}
+      <Text fg={props.selected && props.focused ? TUI.blue : statusColor(props.status)} height={1}>
+        {`${props.selected && props.focused ? ">" : props.selected ? "|" : " "} [${props.status}] ${props.title}`}
       </Text>
       <Text fg={TUI.muted} height={1}>
         {props.description}

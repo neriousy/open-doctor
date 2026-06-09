@@ -1,4 +1,4 @@
-// SQLite boundary: loading node:sqlite, opening DBs, backups, inspection, and guards.
+// SQLite boundary: loading SQLite drivers, opening DBs, backups, inspection, and guards.
 import fs from "node:fs"
 import { createRequire } from "node:module"
 import process from "node:process"
@@ -33,13 +33,19 @@ export type SqlChange = {
 
 export const openDatabase = Effect.fn("Database.open")(function* (filename: string) {
   if (!fs.existsSync(filename)) return yield* fail(`Database not found: ${filename}`)
-  const { DatabaseSync } = loadSqlite()
-  const db = new DatabaseSync(filename) as SqliteDatabase
+  const db = createDatabase(filename)
   db.exec("PRAGMA busy_timeout = 5000")
   return db
 })
 
-export function loadSqlite() {
+export function createDatabase(filename: string) {
+  const nodeSqlite = loadNodeSqlite()
+  if (nodeSqlite) return new nodeSqlite.DatabaseSync(filename) as SqliteDatabase
+  const BetterSqlite = loadBetterSqlite()
+  return new BetterSqlite(filename) as SqliteDatabase
+}
+
+export function loadNodeSqlite() {
   const emitWarning = process.emitWarning
   process.emitWarning = ((warning: string | Error, type?: string, code?: string, ctor?: Function) => {
     const message = typeof warning === "string" ? warning : warning?.message
@@ -52,8 +58,21 @@ export function loadSqlite() {
   }) as typeof process.emitWarning
   try {
     return require("node:sqlite") as { DatabaseSync: new (filename: string) => unknown }
+  } catch (error) {
+    if (isMissingBuiltinSqlite(error)) return undefined
+    throw error
   } finally {
     process.emitWarning = emitWarning
+  }
+}
+
+export function loadBetterSqlite() {
+  try {
+    return require("better-sqlite3") as new (filename: string) => unknown
+  } catch (error) {
+    throw new ToolkitError({
+      message: `Unable to load SQLite support. Use Node >=20.17.0 and reinstall open-doctor so better-sqlite3 can install. ${formatDriverError(error)}`,
+    })
   }
 }
 
@@ -135,4 +154,15 @@ export function quoteString(input: string) {
 
 export function timestamp() {
   return new Date().toISOString().replaceAll(":", "").replaceAll(".", "-")
+}
+
+function isMissingBuiltinSqlite(error: unknown) {
+  if (!(error instanceof Error)) return false
+  const code = (error as NodeJS.ErrnoException).code
+  return code === "ERR_UNKNOWN_BUILTIN_MODULE" || error.message.includes("No such built-in module")
+}
+
+function formatDriverError(error: unknown) {
+  if (error instanceof Error) return error.message
+  return String(error)
 }

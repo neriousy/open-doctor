@@ -12,6 +12,8 @@ export type RouteContext = {
   actions: {
     quit: () => void
     goOverview: () => void
+    openData: () => void
+    openConfig: () => void
     openRepairDetail: () => void
     openArchivedSessions: () => void
     openLogs: () => void
@@ -34,6 +36,14 @@ const context = createStateContext<RouteContext, { onExit: () => void }>({
       setView("overview")
     }
 
+    function openData() {
+      setView("data")
+    }
+
+    function openConfig() {
+      setView("config")
+    }
+
     function openRepairDetail() {
       setView("repair-detail")
     }
@@ -51,7 +61,7 @@ const context = createStateContext<RouteContext, { onExit: () => void }>({
     }
 
     function openSettings() {
-      setView("overview")
+      setView("settings")
     }
 
     return {
@@ -64,6 +74,8 @@ const context = createStateContext<RouteContext, { onExit: () => void }>({
       actions: {
         quit,
         goOverview,
+        openData,
+        openConfig,
         openRepairDetail,
         openArchivedSessions,
         openLogs,

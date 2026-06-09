@@ -28,7 +28,7 @@ export function recommendedActionsFromState(
   return [
     {
       id: "workspace-repair",
-      section: "Repairs",
+      section: "Data",
       category: repair.category,
       status: repair.status,
       title: repair.label,
@@ -44,8 +44,8 @@ export function recommendedActionsFromState(
       targetRoute: "repair-detail",
       safety:
         repair.status === "DETECTED" || repair.status === "EXPERIMENTAL"
-          ? "Backup before apply"
-          : "Read-only check",
+          ? "Changes database. A backup will be created first. Confirmation required."
+          : "No files will be modified.",
       hotkey: "1",
       priority: repair.priority,
       run: routes.openRepairDetail,
@@ -64,7 +64,7 @@ export function recommendedActionsFromState(
       details: "Inspect raw OpenCode log tails by source and filter by level.",
       target: "log sources",
       targetRoute: "logs",
-      safety: "Read-only",
+      safety: "Reviewing logs is read-only.",
       hotkey: "3",
       priority: logIssueCount > 0 ? 20 : 45,
       run: routes.openLogs,
@@ -83,15 +83,15 @@ export function recommendedActionsFromState(
       details: "Preview and restore archived OpenCode sessions from the database.",
       target: "session table",
       targetRoute: "archived",
-      safety: "Backup before restore",
+      safety: "Restoring sessions changes the database. A backup will be created first.",
       hotkey: "2",
       priority: health.archivedCount > 0 ? 30 : 55,
       run: routes.openArchivedSessions,
     },
     {
       id: "backups",
-      section: "Backups",
-      category: "Backups",
+      section: "Data",
+      category: "Data",
       status: backupWarning ? "WARN" : "BACKUP",
       title: backupWarning ? "Create a database backup" : "Review database backups",
       description:
@@ -102,7 +102,7 @@ export function recommendedActionsFromState(
       details: "Review toolkit-created SQLite backups. Restore will require explicit confirmation.",
       target: "opencode.db",
       targetRoute: "backups",
-      safety: "Read-only until c creates a backup",
+      safety: "Creating a backup writes a new file. Existing data is not changed.",
       hotkey: "4",
       priority: backupWarning ? 40 : 60,
       run: routes.openBackups,
@@ -117,6 +117,8 @@ export function commandPaletteItems(
     openArchivedSessions: () => void
     openLogs: () => void
     openBackups: () => void
+    openData: () => void
+    openConfig: () => void
     openSettings: () => void
     requestCreateBackupConfirmation: () => void
     refreshHealth: () => void
@@ -136,7 +138,7 @@ export function commandPaletteItems(
     {
       id: "workspace-db-schema",
       title: "Workspace DB schema",
-      category: "Repairs",
+      category: "Data",
       status: repair.status,
       actionHint: "Open schema repair detail",
       run: routes.openRepairDetail,
@@ -160,15 +162,31 @@ export function commandPaletteItems(
     {
       id: "database-backups",
       title: "Database backups",
-      category: "Backups",
+      category: "Data",
       status: health.backupCount > 0 ? `${countLabel(health.backupCount, "backup")} - ${health.backupStatus}` : "none",
       actionHint: "Open backup browser",
       run: routes.openBackups,
     },
     {
+      id: "data",
+      title: "Data",
+      category: "Navigation",
+      status: "available",
+      actionHint: "Open local data workspace",
+      run: routes.openData,
+    },
+    {
+      id: "config",
+      title: "Config",
+      category: "Navigation",
+      status: "available",
+      actionHint: "Open configuration workspace",
+      run: routes.openConfig,
+    },
+    {
       id: "settings",
       title: "Settings",
-      category: "Settings",
+      category: "Navigation",
       status: "planned",
       actionHint: "Open settings section",
       run: routes.openSettings,
@@ -176,9 +194,9 @@ export function commandPaletteItems(
     {
       id: "create-backup",
       title: "Create backup",
-      category: "Backups",
+      category: "Data",
       status: "available",
-      actionHint: "Create a database backup",
+      actionHint: "Create a database backup...",
       run: routes.requestCreateBackupConfirmation,
     },
     {

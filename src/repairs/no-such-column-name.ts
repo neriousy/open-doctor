@@ -40,7 +40,7 @@ export function plannedWorkspaceRepairs(state: DatabaseState) {
   const completed = state.completedMigrations
   const workspaceNameCompleted = completed.has(WORKSPACE_NAME_MIGRATION)
   const workspaceTimeCompleted = completed.has(WORKSPACE_TIME_MIGRATION)
-  const changes = [
+  const changes: WorkspaceRepair[] = [
     columns.has("type")
       ? undefined
       : {
@@ -51,9 +51,7 @@ export function plannedWorkspaceRepairs(state: DatabaseState) {
       ? undefined
       : {
           label: "Add workspace.name for the workspace-name migration",
-          sql: workspaceNameCompleted
-            ? "ALTER TABLE `workspace` ADD `name` text DEFAULT '' NOT NULL"
-            : "ALTER TABLE `workspace` ADD `name` text",
+          sql: "ALTER TABLE `workspace` ADD `name` text DEFAULT '' NOT NULL",
         },
     columns.has("directory")
       ? undefined
@@ -75,9 +73,35 @@ export function plannedWorkspaceRepairs(state: DatabaseState) {
       : undefined,
   ].filter((change): change is WorkspaceRepair => change !== undefined)
 
-  if (changes.length > 0 && completed.has(WORKSPACE_FIELDS_MIGRATION)) return changes
-  if (columns.has("config") && changes.length > 0) return changes
-  return []
+  if (!workspaceNameCompleted && columns.has("type")) {
+    changes.push({
+      label: "Backfill workspace.type before the workspace-name migration replays",
+      sql: "UPDATE `workspace` SET `type` = 'worktree' WHERE `type` IS NULL OR `type` = ''",
+    })
+  }
+
+  if (!workspaceNameCompleted && columns.has("name")) {
+    changes.push({
+      label: "Backfill workspace.name before the workspace-name migration replays",
+      sql: "UPDATE `workspace` SET `name` = '' WHERE `name` IS NULL",
+    })
+  }
+
+  const repairedColumns = repairedWorkspaceColumns(columns)
+  if (!completed.has(WORKSPACE_FIELDS_MIGRATION) && hasWorkspaceFields(repairedColumns)) {
+    if (!state.tables.has("migration")) {
+      changes.push({
+        label: "Create OpenCode migration journal for repaired workspace schema",
+        sql: "CREATE TABLE IF NOT EXISTS `migration` (`id` TEXT PRIMARY KEY, `time_completed` INTEGER NOT NULL)",
+      })
+    }
+    changes.push({
+      label: "Mark workspace-fields migration complete after repairing its schema",
+      sql: `INSERT OR IGNORE INTO \`migration\` (\`id\`, \`time_completed\`) VALUES ('${WORKSPACE_FIELDS_MIGRATION}', ${Date.now()})`,
+    })
+  }
+
+  return changes
 }
 
 export function printRepairResult(result: RepairResult) {
@@ -90,4 +114,17 @@ export function printRepairResult(result: RepairResult) {
   }
   console.log("Applied repairs:")
   result.changes.map((change) => console.log(`- ${change.label}`))
+}
+
+function repairedWorkspaceColumns(columns: Set<string>) {
+  const repaired = new Set(columns)
+  repaired.add("type")
+  repaired.add("name")
+  repaired.add("directory")
+  repaired.add("extra")
+  return repaired
+}
+
+function hasWorkspaceFields(columns: Set<string>) {
+  return columns.has("type") && columns.has("name") && columns.has("directory") && columns.has("extra")
 }

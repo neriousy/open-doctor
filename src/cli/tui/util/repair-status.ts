@@ -1,5 +1,6 @@
 // Presentation adapter for workspace schema check and repair status.
 import type { RepairStatus, WorkspaceRepairHealth } from "../health.js"
+import { TUI } from "../ui/primitives-model.js"
 
 export type RepairStatusDisplay = {
   status: RepairStatus
@@ -20,7 +21,7 @@ export function repairStatusDisplay(repair: WorkspaceRepairHealth): RepairStatus
       actionHint: "Enter to view check details",
       category: "Check",
       priority: 80,
-      color: "#9fb3c8",
+      color: TUI.muted,
     }
   }
 
@@ -32,7 +33,7 @@ export function repairStatusDisplay(repair: WorkspaceRepairHealth): RepairStatus
       actionHint: "Enter to inspect repair",
       category: "Repair",
       priority: 0,
-      color: "#ecc48d",
+      color: TUI.yellow,
     }
   }
 
@@ -44,7 +45,7 @@ export function repairStatusDisplay(repair: WorkspaceRepairHealth): RepairStatus
       actionHint: "Enter to review",
       category: "Review",
       priority: 10,
-      color: "#ecc48d",
+      color: TUI.yellow,
     }
   }
 
@@ -56,7 +57,7 @@ export function repairStatusDisplay(repair: WorkspaceRepairHealth): RepairStatus
       actionHint: "Enter to run check",
       category: "Check",
       priority: 70,
-      color: "#82aaff",
+      color: TUI.blue,
     }
   }
 
@@ -68,7 +69,7 @@ export function repairStatusDisplay(repair: WorkspaceRepairHealth): RepairStatus
       actionHint: "Enter to view failure",
       category: "Failure",
       priority: 5,
-      color: "#f07178",
+      color: TUI.red,
     }
   }
 
@@ -79,15 +80,15 @@ export function repairStatusDisplay(repair: WorkspaceRepairHealth): RepairStatus
     actionHint: "Enter to review carefully",
     category: "Experimental",
     priority: 20,
-    color: "#ecc48d",
+    color: TUI.yellow,
   }
 }
 
 export function repairStatusColor(status: string) {
-  if (status === "OK") return "#9fb3c8"
-  if (status === "DETECTED" || status === "WARN" || status === "EXPERIMENTAL") return "#ecc48d"
-  if (status === "FAILED") return "#f07178"
-  if (status === "CHECK") return "#82aaff"
+  if (status === "OK") return TUI.muted
+  if (status === "DETECTED" || status === "WARN" || status === "EXPERIMENTAL") return TUI.yellow
+  if (status === "FAILED") return TUI.red
+  if (status === "CHECK") return TUI.blue
   return undefined
 }
 

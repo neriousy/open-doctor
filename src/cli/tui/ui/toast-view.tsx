@@ -2,6 +2,7 @@
 import { toastColor } from "../util/format.js"
 import { Box, Text } from "./primitives.js"
 import type { ToastState } from "../types.js"
+import { TUI } from "./primitives-model.js"
 
 export function ToastView(props: { toast: ToastState }) {
   return (
@@ -17,9 +18,9 @@ export function ToastView(props: { toast: ToastState }) {
       paddingRight={2}
       paddingTop={1}
       paddingBottom={1}
-      backgroundColor="#101820"
+      backgroundColor={TUI.panel}
     >
-      <Text fg="#d6deeb" wrapMode="word">
+      <Text fg={TUI.text} wrapMode="word">
         {props.toast.title ? `${props.toast.title}\n${props.toast.message}` : props.toast.message}
       </Text>
     </Box>

@@ -1,8 +1,10 @@
 // Contextual keyboard help overlay for the TUI shell.
 import { Box, Text } from "../ui/primitives.js"
+import type { SidebarSection } from "../types.js"
+import { TUI } from "../ui/primitives-model.js"
 
 export type HelpContext = {
-  screen: "Overview" | "Repairs" | "Sessions" | "Logs" | "Backups"
+  screen: SidebarSection
   actions: string[]
   safety: string[]
 }
@@ -16,12 +18,12 @@ export function HelpOverlay(props: { context: HelpContext }) {
       left="18%"
       width="64%"
       border
-      borderColor="#82aaff"
+      borderColor={TUI.borderActive}
       padding={1}
-      backgroundColor="#101820"
+      backgroundColor={TUI.panel}
       flexDirection="column"
     >
-      <Text fg="#82aaff" height={1}>
+      <Text fg={TUI.blue} height={1}>
         {`Help - ${props.context.screen}`}
       </Text>
 
@@ -29,7 +31,7 @@ export function HelpOverlay(props: { context: HelpContext }) {
       <HelpSection title="Actions" items={props.context.actions} />
       <HelpSection title="Safety" items={props.context.safety} />
 
-      <Text fg="#7893ad" height={1}>
+      <Text fg={TUI.dim} height={1}>
         Esc closes help and returns to the same focused item.
       </Text>
     </Box>
@@ -39,11 +41,11 @@ export function HelpOverlay(props: { context: HelpContext }) {
 function HelpSection(props: { title: string; items: string[] }) {
   return (
     <Box marginTop={1} flexDirection="column">
-      <Text fg="#d6deeb" height={1}>
+      <Text fg={TUI.text} height={1}>
         {props.title}
       </Text>
       {props.items.map((item) => (
-        <Text key={item} fg="#9fb3c8" height={1}>
+        <Text key={item} fg={TUI.muted} height={1}>
           {`- ${item}`}
         </Text>
       ))}

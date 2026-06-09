@@ -1,73 +1,75 @@
-// Full-width archived sessions browser used by the utils section.
+// Full-width archived sessions browser used by the local data workspace.
 import path from "node:path"
 import type { ArchivedSession } from "../../../../utils/sessions.js"
 import { useHealth } from "../../context/health.js"
 import { useSessions } from "../../context/sessions.js"
-import { archivedSummary, sessionTitle } from "../../util/format.js"
-import { Box, DetailsPanel, EmptyState, Text } from "../../ui/primitives.js"
+import { sessionTitle } from "../../util/format.js"
+import { Box, EmptyState, Text } from "../../ui/primitives.js"
+import { shortenPath, TUI } from "../../ui/primitives-model.js"
+import { WorkspaceSidebar } from "../../ui/workspace-sidebar.js"
 
 export function ArchivedSessionsView() {
   const health = useHealth()
   const sessions = useSessions()
-  const rows = visibleRows(sessions.list.visible, sessions.list.selected, 13)
+  const rows = visibleRows(sessions.list.visible, sessions.list.selected, 16)
   const highlighted = sessions.list.visible[sessions.list.selected]
   const previewed = sessions.list.visible.find((session) => session.id === sessions.selection.previewId)
   const detail = previewed ?? highlighted
   const noMatches = sessions.list.items.length > 0 && sessions.list.visible.length === 0
 
   return (
-    <Box id="archived" flexGrow={1} flexDirection="column" marginTop={1}>
-      <Box id="archived-summary" height={4} border borderColor="#263544" paddingLeft={2} paddingRight={2}>
-        <Text fg="#d6deeb" height={1}>
+    <Box id="archived" flexGrow={1} flexDirection="row" marginTop={1} columnGap={1}>
+      <WorkspaceSidebar selected="Sessions" />
+
+      <Box flexGrow={1} flexDirection="column">
+        <Text fg={TUI.text} height={1}>
           Archived sessions
         </Text>
-        <Text fg="#7893ad" height={1}>
-          {archivedSummary(sessions.list.items.length, sessions.pendingUnarchive, sessions.loading)}
-          {sessions.search.query ? ` | search: ${sessions.search.query}` : ""}
+        <Text fg={TUI.muted} height={1}>
+          Browse archived OpenCode sessions.
+          {sessions.search.query ? ` Search: ${sessions.search.query}` : ""}
         </Text>
-      </Box>
 
-      <Box id="archived-list" flexGrow={1} marginTop={1} border borderColor="#263544" padding={1}>
-        {sessions.loading && sessions.list.items.length === 0 ? (
-          <SessionEmptyState title="Loading archived sessions..." databasePath={health.snapshot.dbPath} />
-        ) : sessions.list.items.length === 0 ? (
-          <SessionEmptyState title="No archived sessions found" databasePath={health.snapshot.dbPath} />
-        ) : noMatches ? (
-          <NoMatchesState query={sessions.search.query} />
-        ) : (
-          <Box flexGrow={1} flexDirection="row" columnGap={1}>
-            <Box flexGrow={1} flexDirection="column">
-              <Box height={1} paddingLeft={1}>
-                <Text fg="#7893ad" height={1}>
-                  {"  Sel  Title                         Project          Archived       Messages"}
-                </Text>
-              </Box>
-              {rows.map(({ item, index }) => (
-                <Box key={item.id} height={1} paddingLeft={1} backgroundColor={index === sessions.list.selected ? "#17202a" : "#0f1419"}>
-                  <Text fg={index === sessions.list.selected ? "#c3e88d" : "#d6deeb"} height={1}>
-                    {formatRow(item, {
-                      current: index === sessions.list.selected,
-                      checked: sessions.selection.ids.has(item.id),
-                      previewed: item.id === sessions.selection.previewId,
-                    })}
+        <Box id="archived-list" flexGrow={1} marginTop={1} border borderColor={TUI.border} padding={1} backgroundColor={TUI.panel}>
+          {sessions.loading && sessions.list.items.length === 0 ? (
+            <SessionEmptyState title="Loading archived sessions..." databasePath={health.snapshot.dbPath} />
+          ) : sessions.list.items.length === 0 ? (
+            <SessionEmptyState title="No archived sessions found" databasePath={health.snapshot.dbPath} />
+          ) : noMatches ? (
+            <NoMatchesState query={sessions.search.query} />
+          ) : (
+            <Box flexGrow={1} flexDirection="row" columnGap={1}>
+              <Box flexGrow={1} flexDirection="column">
+                {rows.map(({ item, index }) => (
+                  <Box key={item.id} height={2} paddingLeft={1} backgroundColor={index === sessions.list.selected ? TUI.selected : TUI.panel}>
+                    <Text fg={index === sessions.list.selected ? TUI.blue : TUI.text} height={1}>
+                      {formatRow(item, {
+                        current: index === sessions.list.selected,
+                        checked: sessions.selection.ids.has(item.id),
+                        previewed: item.id === sessions.selection.previewId,
+                      })}
+                    </Text>
+                    <Text fg={TUI.dim} height={1}>
+                      {`${relativeTime(item.timeArchived)} · ${projectName(item.directory)}`}
+                    </Text>
+                  </Box>
+                ))}
+                <Box marginTop={1} flexDirection="column">
+                  <Text fg={sessions.search.active ? TUI.yellow : TUI.dim} height={1}>
+                    {sessions.search.active ? `Search: ${sessions.search.query}` : "Review is read-only until you choose Restore session..."}
+                  </Text>
+                  <Text fg={TUI.dim} height={1}>
+                    {sessions.selection.ids.size > 0
+                      ? `${sessions.selection.ids.size} checked session${sessions.selection.ids.size === 1 ? "" : "s"}`
+                      : "No sessions checked; restore targets the highlighted row."}
                   </Text>
                 </Box>
-              ))}
-              <Box marginTop={1} flexDirection="column">
-                <Text fg={sessions.search.active ? "#ecc48d" : "#7893ad"} height={1}>
-                  {sessions.search.active ? `Search: ${sessions.search.query}` : "Enter preview - u unarchive selected - Space select/unselect - a select all - s search - / or p palette - r refresh - Esc back"}
-                </Text>
-                <Text fg="#7893ad" height={1}>
-                  {sessions.selection.ids.size > 0
-                    ? `${sessions.selection.ids.size} checked session${sessions.selection.ids.size === 1 ? "" : "s"}`
-                    : "No sessions checked; u targets the highlighted row."}
-                </Text>
               </Box>
-            </Box>
 
-            <SessionDetails session={detail} previewed={Boolean(previewed)} />
-          </Box>
-        )}
+              <SessionDetails session={detail} previewed={Boolean(previewed)} />
+            </Box>
+          )}
+        </Box>
       </Box>
     </Box>
   )
@@ -77,32 +79,40 @@ function SessionDetails(props: { session: ArchivedSession | undefined; previewed
   const session = props.session
 
   return (
-    <DetailsPanel
-      title={props.previewed ? "Session preview" : "Session detail"}
-      width={48}
-      sections={[
-        {
-          title: "Session",
-          rows: [
-            ["Title", session ? sessionTitle(session) : "No session selected"],
-            ["Project", session ? projectName(session.directory) : undefined],
-            ["Archived", session ? formatDate(session.timeArchived) : undefined],
-            ["Messages", formatMessageCount(session?.messageCount)],
-          ],
-        },
-        {
-          title: "Location",
-          rows: [
-            ["Session id", session?.id],
-            ["Path", session?.directory],
-          ],
-        },
-        {
-          title: "Safety",
-          rows: [["Note", "Backup before restore."]],
-        },
-      ]}
-    />
+    <Box width={42} border borderColor={TUI.border} padding={1} flexDirection="column" backgroundColor={TUI.panel}>
+      <Text fg={TUI.dim} height={1}>
+        Session
+      </Text>
+      <Text fg={TUI.text} wrapMode="word">
+        {session ? sessionTitle(session) : "No session selected"}
+      </Text>
+      <DetailBlock label="Status" text={props.previewed ? "Previewed" : "Archived"} color={TUI.yellow} />
+      <DetailBlock label="Why it matters" text="Archived sessions are hidden from the normal OpenCode session list until restored." />
+      <DetailBlock label="Source" text={session ? shortenPath(session.directory, 38) : "OpenCode database"} />
+      <DetailBlock label="Suggested next step" text={session ? "Preview the session or choose Restore session... when you are ready." : "Select a session to inspect it."} />
+      <DetailBlock label="Safety" text="Restoring a session changes the SQLite database. A backup will be created first. Confirmation required." color={TUI.yellow} />
+      <Box marginTop={1} flexDirection="column">
+        <Text fg={TUI.blue} height={1}>
+          Preview session
+        </Text>
+        <Text fg={TUI.yellow} height={1}>
+          Restore session...
+        </Text>
+      </Box>
+    </Box>
+  )
+}
+
+function DetailBlock(props: { label: string; text: string; color?: string }) {
+  return (
+    <Box flexDirection="column" marginTop={1}>
+      <Text fg={TUI.dim} height={1}>
+        {props.label}
+      </Text>
+      <Text fg={props.color ?? TUI.muted} wrapMode="word">
+        {props.text}
+      </Text>
+    </Box>
   )
 }
 
@@ -112,27 +122,12 @@ function SessionEmptyState(props: { title: string; databasePath: string }) {
       title={props.title}
       explanation="Archived OpenCode sessions will appear here when sessions are marked archived."
       checkedPath={props.databasePath}
-      actions={[
-        { key: "r", label: "refresh" },
-        { key: "l", label: "open logs" },
-        { key: "Esc", label: "back" },
-      ]}
     />
   )
 }
 
 function NoMatchesState(props: { query: string }) {
-  return (
-    <EmptyState
-      title="No archived sessions match the current search."
-      explanation={`Search: ${props.query}`}
-      actions={[
-        { key: "s", label: "change search" },
-        { key: "r", label: "refresh" },
-        { key: "Esc", label: "back" },
-      ]}
-    />
-  )
+  return <EmptyState title="No archived sessions match the current search." explanation={`Search: ${props.query}`} />
 }
 
 function visibleRows<T>(items: T[], selected: number, limit: number) {
@@ -144,21 +139,12 @@ function formatRow(session: ArchivedSession, state: { current: boolean; checked:
   const marker = state.current ? ">" : " "
   const checked = state.checked ? "x" : " "
   const preview = state.previewed ? "*" : " "
-  const title = truncate(session.title || "(untitled)", 28).padEnd(28, " ")
-  const project = truncate(projectName(session.directory), 14).padEnd(14, " ")
-  const archived = relativeTime(session.timeArchived).padEnd(14, " ")
-  const messages = formatMessageCount(session.messageCount)
-  return `${marker} [${checked}]${preview} ${title} ${project} ${archived} ${messages}`
+  return `${marker} [${checked}]${preview} ${truncate(session.title || "(untitled)", 58)}`
 }
 
 function projectName(value: string) {
   if (!value) return "-"
   return path.basename(value) || value
-}
-
-function formatMessageCount(value: number | undefined) {
-  if (value === undefined) return "-"
-  return `${value} msg${value === 1 ? "" : "s"}`
 }
 
 function relativeTime(value: number) {
