@@ -1,4 +1,4 @@
-// Command dispatcher: maps legacy commands and grouped section commands to flows.
+// Command dispatcher: maps command shapes to sectioned repair and utility flows.
 import process from "node:process"
 import { Effect } from "effect"
 import { fail } from "../error.js"
@@ -105,7 +105,8 @@ Utils:
 Database resolution:
   1. explicit [db] argument
   2. OPENCODE_DB
-  3. $XDG_DATA_HOME/opencode/opencode.db or ~/.local/share/opencode/opencode.db`)
+  3. OpenCode Global.Path.data/opencode.db
+     $XDG_DATA_HOME/opencode/opencode.db or ~/.local/share/opencode/opencode.db`)
 }
 
 type UnarchiveResult = {

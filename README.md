@@ -22,13 +22,14 @@ npm run build
 node dist/index.js --help
 ```
 
-By default the toolkit targets the same database path as the stable OpenCode desktop app:
+By default the toolkit targets the same database path as OpenCode core's `Global.Path.data` database resolver:
 
 ```txt
 $XDG_DATA_HOME/opencode/opencode.db
+~/.local/share/opencode/opencode.db
 ```
 
-If `OPENCODE_DB` is set, that path is used instead. You can also pass a database path directly:
+OpenCode currently gets that data directory from `xdg-basedir@5.1.0`, so the `~/.local/share` fallback is used when `XDG_DATA_HOME` is not set. If `OPENCODE_DB` is set, that path is used instead. You can also pass a database path directly:
 
 ```sh
 npx opencode-toolkit repair no-such-column-name ~/.local/share/opencode/opencode.db
@@ -43,7 +44,7 @@ The interactive menu uses OpenTUI's native renderer. Under Node it requires Node
 ### Repair
 
 - `repair no-such-column-name [db]`: repairs the known workspace migration wedge behind `Error: no such column: name`.
-- `repair-db [db]`: compatibility alias for `repair no-such-column-name`.
+- `repair-db [db]`: shorter command for the same repair.
 
 ### Utils
 
@@ -51,7 +52,7 @@ The interactive menu uses OpenTUI's native renderer. Under Node it requires Node
 - `utils sessions unarchive <session-id> [db]`: clears `session.time_archived` for one session.
 - `utils db path [db]`: prints the resolved database path.
 
-Compatibility aliases:
+Shorter command forms:
 
 - `sessions archived [db]`
 - `sessions unarchive <session-id> [db]`

@@ -7,7 +7,6 @@ export const REPAIRS = [
     section: "Repair",
     label: "Error: no such column: name",
     command: "repair no-such-column-name",
-    legacyCommand: "repair-db",
     run: repairNoSuchColumnName,
   },
 ]

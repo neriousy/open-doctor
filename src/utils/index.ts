@@ -7,7 +7,6 @@ export const UTILS = [
     section: "Utils",
     label: "Sessions: list archived",
     command: "utils sessions archived",
-    legacyCommand: "sessions archived",
     run: listArchivedSessions,
   },
   {
@@ -15,7 +14,6 @@ export const UTILS = [
     section: "Utils",
     label: "Sessions: unarchive",
     command: "utils sessions unarchive <session-id>",
-    legacyCommand: "sessions unarchive <session-id>",
     run: unarchiveSession,
   },
   {
@@ -23,6 +21,5 @@ export const UTILS = [
     section: "Utils",
     label: "DB path",
     command: "utils db path",
-    legacyCommand: "db path",
   },
 ]

@@ -38,6 +38,7 @@ export function resolveDbArg(input?: string) {
 }
 
 export function defaultDataDir() {
+  // Mirrors opencode core's xdg-basedir@5.1.0 `xdgData` resolution.
   return process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share")
 }
 
