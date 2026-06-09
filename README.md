@@ -2,6 +2,9 @@
 
 Support toolkit for repairing and inspecting local OpenCode data.
 
+<img width="1867" height="979" alt="image" src="https://github.com/user-attachments/assets/34643952-9575-4d38-855c-ba9313c06af5" />
+
+
 This repository is a Bun/Turbo monorepo. The published CLI is `open-doctor`; the
 internal packages keep database repair logic, terminal UI code, and release
 packaging separated.
